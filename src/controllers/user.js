@@ -1,50 +1,63 @@
 const User = require('../models/user');
 const Email = require('../features/email');
 const catchAsync = require('../utils/catchAsync');
-const authUtils = require('../utils/auth');
-const contollerUtils = require('../utils/contollers');
+const {
+  generateAccessCode,
+  getTimeIn,
+  signRefreshToken,
+  accessTokenCookieManager,
+} = require('../utils/auth');
+const {
+  sendSuccessResponse,
+  sendFailureResponse,
+  setFindParmasFromIdentifier,
+} = require('../utils/contollers');
 
 let DB_USER;
 let FIND_PARAMS;
 
 exports.createUser = catchAsync(async (req, res) => {
+  let { email } = req.body;
+
   const userData = {
     ...req.body,
-    accessCode: authUtils.generateAccessCode(),
-    accessCodeExpires: authUtils.getTimeIn((minutes = 10)),
+    accessCode: generateAccessCode(),
+    accessCodeExpires: getTimeIn((minutes = 10)),
+    refreshToken: signRefreshToken(email),
     verified: undefined,
   };
 
   DB_USER = await User.create(userData);
 
-  if (DB_USER) {
-    DB_USER.accessCode = undefined;
-    DB_USER.accessCodeExpires = undefined;
-  }
-
-  contollerUtils.sendResponse(res, {
-    success: true,
-    data: removeAccessCodeFeilds(DB_USER),
-    status: 201,
+  sendSuccessResponse(res, {
+    data: {
+      ...JSON.parse(JSON.stringify(DB_USER)),
+      accessCode: undefined,
+      accessCodeExpires: undefined,
+      refreshToken: undefined,
+    },
+    accessToken: accessTokenCookieManager(res, email),
+    refreshToken: DB_USER.refreshToken,
+    message: `Check ${DB_USER.email} for the one time password to verify your profile`,
   });
 
-  const { name, email, accessCode } = DB_USER;
+  let { name, accessCode } = DB_USER;
   try {
-    await new Email(name, email).sendAccessCode(accessCode);
+    await DB_USER.save();
+    await new Email(name, DB_USER.email).sendAccessCode(accessCode);
   } catch (e) {
     console.error(e.message);
   }
 });
 
 exports.getUsers = catchAsync(async (req, res) => {
-  contollerUtils.sendResponse(res, {
-    status: 200,
+  sendSuccessResponse(res, {
     data: await User.find(),
   });
 });
 
 exports.getUser = catchAsync(async ({ params: { identifier } }, res) => {
-  FIND_PARAMS = contollerUtils.setFindParmasFromIdentifier(identifier);
+  FIND_PARAMS = setFindParmasFromIdentifier(identifier);
 
   if (!FIND_PARAMS) {
     DB_USER = await User.findById(identifier);
@@ -52,10 +65,8 @@ exports.getUser = catchAsync(async ({ params: { identifier } }, res) => {
     DB_USER = await User.findOne(FIND_PARAMS);
   }
 
-  contollerUtils.sendResponse(res, {
-    success: true,
+  sendSuccessResponse(res, {
     data: DB_USER,
-    status: 200,
   });
 });
 
@@ -64,7 +75,7 @@ exports.updateUser = catchAsync(async (req, res) => {
     body,
     params: { identifier },
   } = req;
-  FIND_PARAMS = contollerUtils.setFindParmasFromIdentifier(identifier);
+  FIND_PARAMS = setFindParmasFromIdentifier(identifier);
 
   const updateParams = {
     new: true,
@@ -77,20 +88,16 @@ exports.updateUser = catchAsync(async (req, res) => {
     DB_USER = await User.findOneAndUpdate(FIND_PARAMS, body, updateParams);
   }
 
-  contollerUtils.sendResponse(res, {
-    success: true,
+  sendSuccessResponse(res, {
     data: DB_USER,
-    status: 200,
   });
 });
 
 exports.deleteUser = catchAsync(async ({ params: { identifier } }, res) => {
-  FIND_PARAMS = contollerUtils.setFindParmasFromIdentifier(identifier);
+  FIND_PARAMS = setFindParmasFromIdentifier(identifier);
   DB_USER = await User.findOneAndDelete(FIND_PARAMS);
 
-  contollerUtils.sendResponse(res, {
-    message: '',
+  sendSuccessResponse(res, {
     status: 204,
-    success: true,
   });
 });

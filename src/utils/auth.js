@@ -1,3 +1,6 @@
+const env = require('../env')();
+const jwt = require('jsonwebtoken');
+
 exports.generateAccessCode = () => {
   return new Array(4)
     .fill(0)
@@ -22,3 +25,24 @@ exports.validatePhoneNumber = (phoneNumber) => {
 function generateRandomNumber() {
   return Math.round(Math.random() * 9);
 }
+
+exports.signRefreshToken = (email) => {
+  return jwt.sign({ email }, env.refreshTokenSecret, {
+    expiresIn: env.refreshTokenExpires,
+  });
+};
+
+const ACCESS_TOKEN_EXPIRES = Number(env.accessTokenExpires);
+
+exports.accessTokenCookieManager = (res, email) => {
+  const token = jwt.sign({ email }, env.accessTokenSecret, {
+    expiresIn: ACCESS_TOKEN_EXPIRES,
+  });
+
+  res.cookie('jwt', token, {
+    maxAge: ACCESS_TOKEN_EXPIRES * 1000,
+    secure: env.nodeEnv === 'production',
+  });
+
+  return token;
+};

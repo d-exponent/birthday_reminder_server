@@ -4,31 +4,24 @@ const env = require('../env')();
 const Email = require('../features/email');
 const jwt = require('jsonwebtoken');
 const catchAsync = require('../utils/catchAsync');
-const authUtils = require('../utils/auth');
-const controllerUtils = require('../utils/contollers');
+const {
+  generateAccessCode,
+  getTimeIn,
+  signRefreshToken,
+  accessTokenCookieManager,
+} = require('../utils/auth');
+
+const {
+  sendSuccessResponse,
+  sendFailureResponse,
+  setFindParmasFromIdentifier,
+} = require('../utils/contollers');
 
 let DB_USER;
 
-const signToken = (options) => {
-  return jwt.sign(options, env.jwtSecret, {
-    expiresIn: Number(env.jwt_expires),
-  });
-};
-
-const tokenCookieManager = (res, userInfo) => {
-  const token = signToken(userInfo);
-  res.cookie('jwt', token, {
-    httpOnly: true,
-    expires: new Date(Date.now() + env.jwt_expires * 24 * 60 * 60000),
-    secure: true,
-  });
-
-  return token;
-};
-
 exports.requestAccessCode = catchAsync(
   async ({ params: { identifier } }, res) => {
-    const params = controllerUtils.setFindParmasFromIdentifier(identifier);
+    const params = setFindParmasFromIdentifier(identifier);
 
     if (!params) {
       DB_USER = await User.findById(identifier);
@@ -37,35 +30,30 @@ exports.requestAccessCode = catchAsync(
     }
 
     if (!DB_USER) {
-      return controllerUtils.sendResponse(res, {
+      return sendFailureResponse(res, {
         status: 404,
         message: 'The user does not exist',
-        success: false,
       });
     }
 
-    DB_USER.accessCode = authUtils.generateAccessCode();
-    DB_USER.accessCodeExpires = authUtils.getTimeIn((minutes = 10));
+    DB_USER.accessCode = generateAccessCode();
+    DB_USER.accessCodeExpires = getTimeIn((minutes = 10));
     DB_USER.verfied = false;
     const emailer = new Email(DB_USER.name, DB_USER.email);
 
     DB_USER.save()
       .then(async () => {
         try {
-          await emailer.sendAccessCode(DB_USER.accessCode);
-          controllerUtils.sendResponse(res, {
-            success: true,
-            status: 200,
+          sendSuccessResponse(res, {
             message: `An access code has been sent to ${DB_USER.email}. Expires in ten (10) minutes`,
           });
+          await emailer.sendAccessCode(DB_USER.accessCode);
         } catch (e) {
           return e;
         }
       })
       .catch(() => {
-        controllerUtils.sendResponse(res, {
-          status: 500,
-          success: true,
+        sendFailureResponse(res, {
           message: 'Something went wrong!',
         });
       });
@@ -77,42 +65,75 @@ exports.login = catchAsync(async ({ params: { identifier } }, res) => {
   DB_USER = await User.findOne({ accessCode: identifier });
 
   if (!DB_USER) {
-    return controllerUtils.sendResponse(res, {
+    return sendFailureResponse(res, {
       status: 404,
       message: 'Inavlid credentials',
-      success: false,
     });
   }
 
   if (Date.now() > DB_USER.accessCodeExpires.getTime()) {
-    controllerUtils.sendResponse(res, {
+    sendFailureResponse(res, {
       status: 401,
-      success: false,
       message: 'Expired credentials.',
     });
     return;
   }
 
+  const accessToken = accessTokenCookieManager(res, DB_USER.email);
+  const refreshToken = signRefreshToken(DB_USER.email);
+
   DB_USER.accessCode = undefined;
   DB_USER.accessCodeExpires = undefined;
   DB_USER.verfied = true;
+  DB_USER.refreshToken = refreshToken;
 
   try {
     await DB_USER.save();
-    controllerUtils.sendResponse(res, {
-      status: 200,
-      success: true,
-      data: DB_USER,
-      accessCode: tokenCookieManager(res, {
-        id: DB_USER.id,
-        email: DB_USER.email,
-      }),
+    sendSuccessResponse(res, {
+      data: {
+        ...JSON.parse(JSON.stringify(DB_USER)),
+        refreshToken: undefined,
+        verfied: undefined,
+      },
+      accessToken,
+      refreshToken,
     });
   } catch (e) {
-    controllerUtils.sendResponse(res, {
-      success: false,
+    sendFailureResponse(res, {
       mesage: 'Something went wrong. Please try again',
-      status: 500,
     });
   }
+});
+
+exports.getAccessToken = catchAsync(async (req, res, next) => {
+  let {
+    headers,
+    body: { email },
+  } = req;
+
+  const refreshToken = headers['x-auth-refresh'];
+  if (!refreshToken) return next(new Error('Provide auth token'));
+
+  email = email.toLowerCase();
+  DB_USER = await User.findOne({ email }).select('refreshToken');
+
+  if (!DB_USER) {
+    return next(new Error('Invalid auth credentials'));
+  }
+
+  if (DB_USER.refreshToken !== refreshToken) {
+    return next(new Error('Invalid auth credentials'));
+  }
+
+  try {
+    jwt.verify(refreshToken, env.refreshTokenSecret);
+  } catch (e) {
+    DB_USER.refreshToken = undefined;
+    DB_USER.save().catch((e) => console.error(e.message));
+    return next(e);
+  }
+
+  sendSuccessResponse(res, {
+    accessToken: accessTokenCookieManager(res, email),
+  });
 });

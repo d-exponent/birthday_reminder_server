@@ -6,4 +6,6 @@ router
   .get(authController.requestAccessCode)
   .patch(authController.login);
 
+router.get('/access-token', authController.getAccessToken);
+
 module.exports = router;

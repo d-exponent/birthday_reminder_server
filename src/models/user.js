@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
   accessCodeExpires: Date,
+  refreshToken:{
+    type: String,
+    select: false
+  },
   verfied: {
     type: Boolean,
     default: false,
