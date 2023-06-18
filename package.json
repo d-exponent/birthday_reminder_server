@@ -1,0 +1,39 @@
+{
+  "name": "birthday-rmd-server",
+  "version": "1.0.0",
+  "description": "Express js server for react js frontend",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/d-exponent/birthday_remind.git"
+  },
+  "author": "Desmond Odion",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/d-exponent/birthday_remind.git"
+  },
+  "homepage": "https://github.com/d-exponent/birthday_remind.git",
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.0",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^6.7.0",
+    "express-xss-sanitizer": "^1.1.6",
+    "expressjs": "^1.0.1",
+    "jest": "^29.5.0",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^7.3.0",
+    "morgan": "^1.10.0",
+    "nodemailer": "^6.9.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22",
+    "prettier": "^2.8.8"
+  }
+}
