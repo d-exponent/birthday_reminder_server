@@ -1,11 +1,12 @@
-const router = require('express').Router();
-const authController = require('../controllers/auth');
+const router = require('express').Router()
+const authController = require('../controllers/auth')
+const middleware = require('../controllers/middleware')
+
+router.get('/tokens', authController.getAccessToken)
 
 router
   .route('/login/:identifier')
-  .get(authController.requestAccessCode)
-  .patch(authController.login);
+  .get(middleware.setQueryFromIdentifier, authController.requestAccessCode)
+  .patch(middleware.setQueryFromIdentifier, authController.login)
 
-router.get('/access-token', authController.getAccessToken);
-
-module.exports = router;
+module.exports = router

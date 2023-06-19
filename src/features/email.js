@@ -1,13 +1,13 @@
-const nodemailer = require('nodemailer');
-const env = require('../env')();
+const nodemailer = require('nodemailer')
+const env = require('../env')
 
 class Email {
-  appEmail = env.appEmail;
+  appEmail = env.appEmail
 
   constructor(userName, userEmail, url = '') {
-    this.userName = userName;
-    this.userEmail = userEmail;
-    this.url = url;
+    this.userName = userName
+    this.userEmail = userEmail
+    this.url = url
   }
 
   transport() {
@@ -15,9 +15,9 @@ class Email {
       service: 'hotmail',
       auth: {
         user: this.appEmail,
-        pass: env.appEmailPass,
-      },
-    });
+        pass: env.appEmailPass
+      }
+    })
   }
 
   async send(params) {
@@ -25,8 +25,8 @@ class Email {
       from: 'Eclipse Todo',
       to: this.userEmail,
       text: params.text,
-      subject: params.subject,
-    });
+      subject: params.subject
+    })
   }
 
   async sendAccessCode(accessCode) {
@@ -42,9 +42,9 @@ class Email {
 
       Regards,
       Eclipse Todo Team
-      `,
-    });
+      `
+    })
   }
 }
 
-module.exports = Email;
+module.exports = Email

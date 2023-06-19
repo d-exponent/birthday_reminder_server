@@ -1,36 +1,29 @@
-const authUtils = require('./auth');
+const { HTTP_STATUS_CODES } = require('../constants')
 
-exports.sendResponse = (res, params) => {
-  res.status(params.status).json({ ...params, status: undefined });
-};
+exports.sendResponse = (type = '', res, params) => {
+  const response = { ...params }
 
-exports.setFindParmasFromIdentifier = (identifier) => {
-  const findParams = {};
-
-  if (authUtils.validateEmail(identifier)) {
-    findParams['email'] = identifier;
-    return findParams;
+  if (type.match(/error/i)) {
+    response.status = params.status || HTTP_STATUS_CODES.error.serverError
+    response.success = false
+  } else if (type.match(/success/i)) {
+    response.status = params.status || HTTP_STATUS_CODES.success.ok
+    response.success = true
+  } else {
+    const err = new Error('type parameter must be either error or success')
+    err.name = 'ValueError'
+    throw err
   }
-  if (authUtils.validatePhoneNumber(identifier)) {
-    findParams['phone'] = identifier;
-    return findParams;
+
+  res.status(response.status).json({ ...response, status: undefined })
+}
+
+exports.baseSelect = (...args) => {
+  let selected = 'name email phone'
+
+  if (args) {
+    args.forEach((arg) => (selected = `${selected} ${arg}`))
   }
 
-  return null;
-};
-
-exports.sendSuccessResponse = (res, params) => {
-  this.sendResponse(res, {
-    ...params,
-    success: true,
-    status: params.status || 200,
-  });
-};
-
-exports.sendFailureResponse = (res, params) => {
-  this.sendResponse(res, {
-    ...params,
-    success: false,
-    status: params.status || 500,
-  });
-};
+  return selected
+}
