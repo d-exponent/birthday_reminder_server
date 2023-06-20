@@ -1,10 +1,10 @@
-const mongoose = require('mongoose')
+const { Schema, model } = require('mongoose')
+const { REGEX } = require('../constants')
 
 const namesUtils = require('../utils/names')
-const authUtils = require('../utils/auth')
 const { SCHEMA_OPTIONS } = require('../constants')
 
-const userSchema = new mongoose.Schema(
+const userSchema = new Schema(
   {
     name: {
       type: String,
@@ -12,16 +12,16 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      lowercase: true,
-      validate: [authUtils.validateEmail, 'invalid email address'],
       unique: true,
-      required: [true, 'A user must have an email address']
+      lowercase: true,
+      required: [true, 'A user must have an email address'],
+      // validate: [(email) => REGEX.email.test(email), 'invalid email address']
     },
     phone: {
       type: String,
-      validate: [authUtils.validatePhoneNumber, 'Invalid phone number format'],
+      unique: true,
       lowercase: true,
-      unique: true
+      validate: [(phone) => REGEX.phone.test(phone), 'Invalid phone number']
     },
     accessCode: {
       type: String,
@@ -57,4 +57,4 @@ userSchema.pre(/^find/, function (next) {
   next()
 })
 
-module.exports = mongoose.model('User', userSchema)
+module.exports = model('User', userSchema)

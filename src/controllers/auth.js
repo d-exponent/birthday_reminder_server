@@ -6,7 +6,7 @@ const Email = require('../features/email')
 const AppError = require('../utils/appError')
 const catchAsync = require('../utils/catchAsync')
 const { sendResponse, baseSelect } = require('../utils/contollers')
-const { HTTP_STATUS_CODES, RESPONSE_TYPE } = require('../constants')
+const { HTTP_STATUS_CODES, RESPONSE_TYPE, REGEX } = require('../constants')
 const {
   generateAccessCode,
   getTimeIn,
@@ -22,6 +22,7 @@ let ERROR
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
   DB_USER = await User.findOne(req.identifierQuery)
+  console.log(DB_USER)
 
   if (!DB_USER) {
     ERROR = new AppError('The user was not found', NOT_FOUND_STATUS)
@@ -74,7 +75,7 @@ exports.login = catchAsync(async (req, res, next) => {
   })
 })
 
-exports.getAccessToken = catchAsync(async ({ headers, body: { email } }, res, next) => {
+exports.getTokens = catchAsync(async ({ headers, body: { email } }, res, next) => {
   const refreshToken = headers['x-auth-refresh']
   if (!refreshToken) {
     return next(new AppError('Invalid token', UNAUTHORIZE_STATUS))
@@ -112,4 +113,23 @@ exports.getAccessToken = catchAsync(async ({ headers, body: { email } }, res, ne
   })
 })
 
+exports.authenticate = catchAsync(async (req, _, next) => {
 
+  
+  let token
+  const appJwtCookie = req.secureCookies || null
+  let headerBearer = req.headers['authorization'] || null
+
+  if (headerBearer && REGEX.bearerJwtToken.test(headerBearer)) {
+    console.log('🛑🛑 BEAERER TOKEN', headerBearer)
+    // token = headerBearer.split(' ')[1]
+  }
+
+  // SECURE COOKIES TAKE PRIORITY
+  if (appJwtCookie && REGEX.jwtToken.test(appJwtCookie)) {
+    console.log('🛑Secure Cookies', req.secureCookies)
+    // token = req.secureCookies
+  }
+
+  next()
+})
