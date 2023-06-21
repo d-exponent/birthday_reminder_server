@@ -1,8 +1,7 @@
 const { Schema, model } = require('mongoose')
-const { REGEX } = require('../constants')
 
 const namesUtils = require('../utils/names')
-const { SCHEMA_OPTIONS } = require('../constants')
+const { REGEX, SCHEMA_OPTIONS, USER_ROLES } = require('../settings/constants')
 
 const userSchema = new Schema(
   {
@@ -15,7 +14,7 @@ const userSchema = new Schema(
       unique: true,
       lowercase: true,
       required: [true, 'A user must have an email address'],
-      // validate: [(email) => REGEX.email.test(email), 'invalid email address']
+      validate: [(email) => REGEX.email.test(email), 'invalid email address']
     },
     phone: {
       type: String,
@@ -38,6 +37,11 @@ const userSchema = new Schema(
     verfied: {
       type: Boolean,
       default: false
+    },
+    role: {
+      type: String,
+      enum: USER_ROLES,
+      default: USER_ROLES[0] //user
     },
     created_at: {
       type: Date,

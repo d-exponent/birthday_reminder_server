@@ -1,15 +1,18 @@
-const router = require('express').Router()
+const authRouter = require('express').Router()
 const authController = require('../controllers/auth')
 const middleware = require('../controllers/middleware')
 
-router.get(
+authRouter.get(
   '/:identifier',
   middleware.setMongooseFindParams,
   authController.requestAccessCode
 )
 
-router.get('/login/:accessCode', middleware.setMongooseFindParams, authController.login)
-router.get('/tokens', authController.getTokens)
+authRouter.get(
+  '/login/:accessCode',
+  middleware.setMongooseFindParams,
+  authController.login
+)
+authRouter.get('/tokens', authController.getTokens)
 
-module.exports = router
-
+module.exports = authRouter

@@ -2,7 +2,7 @@ const User = require('../models/user')
 const Email = require('../features/email')
 const AppError = require('../utils/appError')
 const catchAsync = require('../utils/catchAsync')
-const { HTTP_STATUS_CODES, RESPONSE_TYPE } = require('../constants')
+const { HTTP_STATUS_CODES, RESPONSE_TYPE } = require('../settings/constants')
 const {
   generateAccessCode,
   getTimeIn,
@@ -11,7 +11,6 @@ const {
 } = require('../utils/auth')
 const { sendResponse } = require('../utils/contollers')
 
-let DB_USER
 const NOT_FOUND_ERR = new AppError('Not found', HTTP_STATUS_CODES.error.notFound)
 
 exports.createUser = catchAsync(async (req, res) => {
@@ -22,59 +21,61 @@ exports.createUser = catchAsync(async (req, res) => {
     ...req.body,
     accessCode: generateAccessCode(),
     accessCodeExpires: getTimeIn((minutes = 10)),
-    refreshToken: signRefreshToken(email),
-    verified: undefined
+    refreshToken: signRefreshToken(email, true),
+    verified: undefined,
+    role: undefined
   }
 
-  DB_USER = await User.create(userData)
+  const user = await User.create(userData)
 
   sendResponse(RESPONSE_TYPE.success, res, {
     data: {
-      ...JSON.parse(JSON.stringify(DB_USER)),
+      ...JSON.parse(JSON.stringify(user)),
       __v: undefined,
       accessCode: undefined,
       accessCodeExpires: undefined,
       refreshToken: undefined
     },
     status: HTTP_STATUS_CODES.success.created,
-    accessToken: accessTokenCookieManager(res, email),
-    refreshToken: DB_USER.refreshToken,
-    message: `Check ${DB_USER.email} for the one time password to verify your profile`
+    accessToken: accessTokenCookieManager(req, res, email),
+    refreshToken: user.refreshToken,
+    message: `Check ${user.email} for the one time password to verify your profile`
   })
 
-  const emailer = new Email(DB_USER.name, DB_USER.email)
+  const emailer = new Email(user.name, user.email)
 
-  DB_USER.save()
-    .then(() => emailer.sendAccessCode(DB_USER.accessCode))
+  user
+    .save()
+    .then(() => emailer.sendAccessCode(user.accessCode))
     .catch((e) => console.error('🛑🛑 ERROR', e))
 })
 
 exports.getUsers = catchAsync(async (_, res, next) => {
-  DB_USER = await User.find()
-  if (!DB_USER) return next(NOT_FOUND_ERR)
+  const user = await User.find()
+  if (!user) return next(NOT_FOUND_ERR)
   sendResponse(RESPONSE_TYPE.success, res, { data: await User.find() })
 })
 
 exports.getUser = catchAsync(async ({ identifierQuery }, res, next) => {
-  DB_USER = await User.findOne(identifierQuery)
-  if (!DB_USER) return next(NOT_FOUND_ERR)
+  const user = await User.findOne(identifierQuery)
+  if (!user) return next(NOT_FOUND_ERR)
 
-  sendResponse(RESPONSE_TYPE.success, res, { data: DB_USER })
+  sendResponse(RESPONSE_TYPE.success, res, { data: user })
 })
 
 exports.updateUser = catchAsync(async (req, res, next) => {
-  DB_USER = await User.findOneAndUpdate(req.identifierQuery, req.body, {
+  const user = await User.findOneAndUpdate(req.identifierQuery, req.body, {
     new: true,
     runValidators: true
   })
 
-  if (!DB_USER) return next(NOT_FOUND_ERR)
-  sendResponse(RESPONSE_TYPE.success, res, { data: DB_USER })
+  if (!user) return next(NOT_FOUND_ERR)
+  sendResponse(RESPONSE_TYPE.success, res, { data: user })
 })
 
 exports.deleteUser = catchAsync(async ({ identifierQuery }, res, next) => {
-  DB_USER = await User.findOne(identifierQuery)
-  if (!DB_USER) return next(NOT_FOUND_ERR)
+  const user = await User.findOne(identifierQuery)
+  if (!user) return next(NOT_FOUND_ERR)
 
   await User.findOneAndDelete(identifierQuery)
   sendResponse(RESPONSE_TYPE.success, res, { status: 204 })

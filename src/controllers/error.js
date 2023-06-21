@@ -1,10 +1,7 @@
-const env = require('../env')
-
+const env = require('../settings/env')
 const AppError = require('../utils/appError')
 const { sendResponse } = require('../utils/contollers')
-const { HTTP_STATUS_CODES } = require('../constants')
-
-
+const { HTTP_STATUS_CODES } = require('../settings/constants')
 
 const sendDevelopmentError = (res, err) => {
   sendResponse('error', res, err)
@@ -41,7 +38,7 @@ exports.globalErrorHandler = (err, _, res, __) => {
     name: err.name || undefined,
     stack: err.stack || undefined,
     isOperational: err.isOperational || false,
-    status: err.status || err.statusCode || HTTP_STATUS_CODES.error.serverError,
+    status: err.status || err.statusCode || HTTP_STATUS_CODES.error.serverError
   }
 
   if (env.nodeEnv === 'production') {

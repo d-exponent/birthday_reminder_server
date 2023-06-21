@@ -21,6 +21,8 @@ exports.RESPONSE_TYPE = {
 
 exports.SCHEMA_OPTIONS = { toJSON: { virtuals: true } }
 
+exports.USER_ROLES = ['user', 'admin']
+
 exports.REGEX = {
   accessCode: /^[0-9]{4}$/,
   phone: /^\+(?:[0-9] ?){6,14}[0-9]$/,

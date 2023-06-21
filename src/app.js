@@ -5,7 +5,7 @@ const mongoSanitize = require('express-mongo-sanitize')
 const rateLimit = require('express-rate-limit')
 const morgan = require('morgan')
 
-const env = require('./env')
+const env = require('./settings/env')
 const userRouter = require('./routes/users')
 const authRouter = require('./routes/auth')
 const errorController = require('./controllers/error')

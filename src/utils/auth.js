@@ -1,4 +1,4 @@
-const env = require('../env')
+const env = require('../settings/env')
 const jwt = require('jsonwebtoken')
 
 exports.generateAccessCode = () => {
@@ -13,18 +13,18 @@ exports.signRefreshToken = (email) => {
   })
 }
 
-exports.accessTokenCookieManager = (res, email, logout = false) => {
+exports.accessTokenCookieManager = (req, res, email, logout = false) => {
   const token = logout
-    ? 'logout_token'
+    ? 'logout'
     : jwt.sign({ email }, env.accessTokenSecret, {
         expiresIn: env.accessTokenExpires
       })
 
   res.cookie(env.cookieName, token, {
     httpOnly: true,
-    signed: !logout,
-    secure: env.isProduction,
-    maxAge: logout ? 5000 : env.accessTokenExpires * 1000
+    signed: true,
+    secure: req.secure,
+    maxAge: logout ? 2000 : env.accessTokenExpires * 1000
   })
 
   return token

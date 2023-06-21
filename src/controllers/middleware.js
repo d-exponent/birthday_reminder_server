@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const { REGEX, HTTP_STATUS_CODES } = require('../constants')
+const { REGEX, HTTP_STATUS_CODES } = require('../settings/constants')
 const AppError = require('../utils/appError')
 
 exports.setMongooseFindParams = (req, _, next) => {

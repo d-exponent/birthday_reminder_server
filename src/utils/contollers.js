@@ -1,6 +1,6 @@
-const { HTTP_STATUS_CODES } = require('../constants')
+const { HTTP_STATUS_CODES } = require('../settings/constants')
 
-exports.sendResponse = (type = '', res, params) => {
+exports.sendResponse = (type, res, params) => {
   const response = { ...params }
 
   if (type.match(/error/i)) {

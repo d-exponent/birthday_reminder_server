@@ -1,12 +1,18 @@
 const jwt = require('jsonwebtoken')
+const { promisify } = require('util')
 
-const env = require('../env')
+const env = require('../settings/env')
 const User = require('../models/user')
 const Email = require('../features/email')
 const AppError = require('../utils/appError')
 const catchAsync = require('../utils/catchAsync')
 const { sendResponse, baseSelect } = require('../utils/contollers')
-const { HTTP_STATUS_CODES, RESPONSE_TYPE, REGEX } = require('../constants')
+const {
+  HTTP_STATUS_CODES,
+  RESPONSE_TYPE,
+  REGEX,
+  USER_ROLES
+} = require('../settings/constants')
 const {
   generateAccessCode,
   getTimeIn,
@@ -14,59 +20,56 @@ const {
   accessTokenCookieManager
 } = require('../utils/auth')
 
-const UNAUTHORIZE_STATUS = HTTP_STATUS_CODES.error.unauthorized
+const UNAUTHORIZED_STATUS = HTTP_STATUS_CODES.error.unauthorized
 const NOT_FOUND_STATUS = HTTP_STATUS_CODES.error.notFound
-
-let DB_USER
 let ERROR
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-  DB_USER = await User.findOne(req.identifierQuery)
-  console.log(DB_USER)
+  const user = await User.findOne(req.identifierQuery)
 
-  if (!DB_USER) {
+  if (!user) {
     ERROR = new AppError('The user was not found', NOT_FOUND_STATUS)
     return next(ERROR)
   }
 
-  DB_USER.accessCode = generateAccessCode()
-  DB_USER.accessCodeExpires = getTimeIn((minutes = 10))
-  DB_USER.verfied = false
-  await DB_USER.save()
+  user.accessCode = generateAccessCode()
+  user.accessCodeExpires = getTimeIn((minutes = 10))
+  user.verfied = false
+  await user.save()
 
-  const { name, email, accessCode } = DB_USER
-  const message = `An access code has been sent to ${DB_USER.email}. Expires in ten (10) minutes`
+  const { name, email, accessCode } = user
+  const message = `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
 
   await new Email(name, email).sendAccessCode(accessCode)
   sendResponse(RESPONSE_TYPE.success, res, { message })
 })
 
 exports.login = catchAsync(async (req, res, next) => {
-  DB_USER = await User.findOne(req.identifierQuery).select(
+  const user = await User.findOne(req.identifierQuery).select(
     baseSelect('accessCodeExpires')
   )
 
-  if (!DB_USER) {
-    ERROR = new AppError('Invalid access code', UNAUTHORIZE_STATUS)
+  if (!user) {
+    ERROR = new AppError('Invalid access code', UNAUTHORIZED_STATUS)
     return next(ERROR)
   }
 
-  if (Date.now() > DB_USER.accessCodeExpires.getTime()) {
-    return next(new AppError('Expired credentails', UNAUTHORIZE_STATUS))
+  if (Date.now() > user.accessCodeExpires.getTime()) {
+    return next(new AppError('Expired credentails', UNAUTHORIZED_STATUS))
   }
 
-  const accessToken = accessTokenCookieManager(res, DB_USER.email)
-  const refreshToken = signRefreshToken(DB_USER.email)
+  const accessToken = accessTokenCookieManager(req, res, user.email)
+  const refreshToken = signRefreshToken(user.email)
 
-  DB_USER.accessCode = undefined
-  DB_USER.accessCodeExpires = undefined
-  DB_USER.verfied = true
-  DB_USER.refreshToken = refreshToken
+  user.accessCode = undefined
+  user.accessCodeExpires = undefined
+  user.verfied = true
+  user.refreshToken = refreshToken
 
-  await DB_USER.save()
+  await user.save()
   sendResponse(RESPONSE_TYPE.success, res, {
     data: {
-      ...JSON.parse(JSON.stringify(DB_USER)),
+      ...JSON.parse(JSON.stringify(user)),
       refreshToken: undefined,
       verfied: undefined
     },
@@ -75,61 +78,111 @@ exports.login = catchAsync(async (req, res, next) => {
   })
 })
 
-exports.getTokens = catchAsync(async ({ headers, body: { email } }, res, next) => {
-  const refreshToken = headers['x-auth-refresh']
+exports.logout = catchAsync(async (req, res) => {
+  const user = await User.findOne({ email: req.currentUser.email })
+  user.refreshToken = undefined
+  user.verfied = undefined
+  await user.save()
+
+  accessTokenCookieManager(req, res, '', true)
+  sendResponse(RESPONSE_TYPE.success, res, { status: 204, message: 'logged out' })
+})
+
+exports.getTokens = catchAsync(async (req, res, next) => {
+  const refreshToken = req.headers['x-auth-refresh']
   if (!refreshToken) {
-    return next(new AppError('Invalid token', UNAUTHORIZE_STATUS))
+    return next(new AppError('Invalid token', UNAUTHORIZED_STATUS))
   }
 
-  email = email.toLowerCase()
-  DB_USER = await User.findOne({ email }).select(baseSelect('refreshToken'))
+  const email = req.email.toLowerCase()
+  const user = await User.findOne({ email }).select(baseSelect('refreshToken'))
 
   const invalidAuthCredentialsMsg = 'Invalid auth credentials'
 
-  if (!DB_USER) {
-    return next(new AppError(invalidAuthCredentialsMsg, UNAUTHORIZE_STATUS))
+  if (!user) {
+    return next(new AppError(invalidAuthCredentialsMsg, UNAUTHORIZED_STATUS))
   }
 
-  if (DB_USER.refreshToken !== refreshToken) {
-    return next(new AppError(invalidAuthCredentialsMsg, UNAUTHORIZE_STATUS))
+  if (user.refreshToken !== refreshToken) {
+    return next(new AppError(invalidAuthCredentialsMsg, UNAUTHORIZED_STATUS))
   }
 
   try {
-    jwt.verify(refreshToken, env.refreshTokenSecret)
+    await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
   } catch (e) {
-    DB_USER.refreshToken = undefined
-    DB_USER.save().catch((e) => console.error(e.message))
+    user.refreshToken = undefined
+    user.save().catch((e) => console.error('🛑GET TOKENS CONTROLLER', e.message))
     return next(e)
   }
 
-  const newRefreshToken = signRefreshToken(DB_USER.email)
-  DB_USER.refreshToken = newRefreshToken
-  await DB_USER.save()
+  user.refreshToken = signRefreshToken(user.email)
+  await user.save()
 
   sendResponse(RESPONSE_TYPE.success, res, {
-    refreshToken: newRefreshToken,
-    accessToken: accessTokenCookieManager(res, email),
+    refreshToken: user.refreshToken,
+    accessToken: accessTokenCookieManager(req, res, email),
     status: HTTP_STATUS_CODES.success.created
   })
 })
 
-exports.authenticate = catchAsync(async (req, _, next) => {
+exports.protect = catchAsync(async (req, _, next) => {
+  const cookieToken = req.signedCookies[env.cookieName] || null
+  const headerAuthorization = req.headers['authorization'] || null
 
-  
-  let token
-  const appJwtCookie = req.secureCookies || null
-  let headerBearer = req.headers['authorization'] || null
-
-  if (headerBearer && REGEX.bearerJwtToken.test(headerBearer)) {
-    console.log('🛑🛑 BEAERER TOKEN', headerBearer)
-    // token = headerBearer.split(' ')[1]
+  if (!cookieToken && !headerAuthorization) {
+    return next(
+      new AppError(
+        'Please Login with valid credentials',
+        HTTP_STATUS_CODES.error.unauthorized
+      )
+    )
   }
 
-  // SECURE COOKIES TAKE PRIORITY
-  if (appJwtCookie && REGEX.jwtToken.test(appJwtCookie)) {
-    console.log('🛑Secure Cookies', req.secureCookies)
-    // token = req.secureCookies
-  }
+  const token =
+    cookieToken && REGEX.jwtToken.test(cookieToken)
+      ? cookieToken
+      : headerAuthorization &&
+        REGEX.bearerJwtToken.test(headerAuthorization) &&
+        REGEX.jwtToken.test(headerAuthorization.split(' ')[1])
+      ? headerAuthorization.split(' ')[1]
+      : null
 
+  const invalidCredentialsError = new AppError(
+    'Invalid login credentials. Please login',
+    HTTP_STATUS_CODES.error.unauthorized
+  )
+
+  if (token === null) return next(invalidCredentialsError)
+
+  const decoded = await promisify(jwt.verify)(token, env.accessTokenSecret)
+  const user = await User.findOne({ email: decoded.email })
+  if (!user) return next(invalidCredentialsError)
+
+  req.currentUser = user
   next()
 })
+
+exports.restrictTo = (...args) => {
+  // Ensure at least one role is passed
+  if (!args.length) throw new Error('restrictTo requires at least one valid role')
+
+  // ENSURE ONLY VALID ROLES ARE PASSED AS ARGUMENTS
+  args.forEach((arg) => {
+    if (!USER_ROLES.includes(arg)) {
+      throw new Error(`${arg} is not a valid role`)
+    }
+  })
+
+  return (req, _, next) => {
+    if (!args.includes(req.currentUser.role)) {
+      return next(
+        new AppError(
+          'You do not have permission to access this resource',
+          HTTP_STATUS_CODES.error.forbidden
+        )
+      )
+    }
+
+    next()
+  }
+}

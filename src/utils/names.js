@@ -1,4 +1,5 @@
-const titleCaseText = (text) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()
+const titleCaseText = (text) =>
+  text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()
 
 exports.titleCaseNames = (name) => {
   const names = name.split(' ')

@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer')
-const env = require('../env')
+const env = require('../settings/env')
 
 class Email {
   appEmail = env.appEmail
