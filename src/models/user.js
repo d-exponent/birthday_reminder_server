@@ -13,8 +13,8 @@ const userSchema = new Schema(
       type: String,
       unique: true,
       lowercase: true,
-      required: [true, 'A user must have an email address'],
-      validate: [(email) => REGEX.email.test(email), 'invalid email address']
+      required: [true, 'A user must have an email address']
+      // validate: [(email) => REGEX.email.test(email), 'invalid email address']
     },
     phone: {
       type: String,
@@ -42,6 +42,10 @@ const userSchema = new Schema(
       type: String,
       enum: USER_ROLES,
       default: USER_ROLES[0] //user
+    },
+    isActive: {
+      type: Boolean,
+      default: true
     },
     created_at: {
       type: Date,

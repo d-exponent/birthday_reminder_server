@@ -1,11 +1,10 @@
 const mongoose = require('mongoose')
-
 const names = require('../utils/names')
 
 const birthdaySchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'A user must have a name']
+    required: [true, "The birthday's owner must have a name "]
   },
   month: {
     type: Number,
@@ -19,6 +18,10 @@ const birthdaySchema = new mongoose.Schema({
     max: 31,
     required: [true, 'A birthday must have a day']
   },
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   phoneNumber: String,
   email: String,
   created_at: {
@@ -29,6 +32,11 @@ const birthdaySchema = new mongoose.Schema({
 
 birthdaySchema.pre('save', function (next) {
   this.name = names.titleCaseNames(this.name)
+  next()
+})
+
+birthdaySchema.pre(/^find/, function (next) {
+  this.select('-__v')
   next()
 })
 

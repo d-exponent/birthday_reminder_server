@@ -1,14 +1,14 @@
 const mongoose = require('mongoose')
 
-const { REGEX, HTTP_STATUS_CODES } = require('../settings/constants')
 const AppError = require('../utils/appError')
+const { REGEX, HTTP_STATUS_CODES } = require('../settings/constants')
 
 exports.setMongooseFindParams = (req, _, next) => {
-  let identifier
-  let accessCode
-
   const query = {}
   const { params } = req
+
+  let identifier
+  let accessCode
 
   if (params.identifier) {
     identifier = params.identifier

@@ -19,6 +19,11 @@ exports.RESPONSE_TYPE = {
   error: 'error'
 }
 
+exports.FIND_UPDATE_OPTIONS = {
+  new: true,
+  runValidators: true
+}
+
 exports.SCHEMA_OPTIONS = { toJSON: { virtuals: true } }
 
 exports.USER_ROLES = ['user', 'admin']

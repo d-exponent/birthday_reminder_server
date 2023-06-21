@@ -25,7 +25,7 @@ const NOT_FOUND_STATUS = HTTP_STATUS_CODES.error.notFound
 let ERROR
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.identifierQuery)
+  const user = await User.findOne(req.identifierQuery).exec()
 
   if (!user) {
     ERROR = new AppError('The user was not found', NOT_FOUND_STATUS)
@@ -47,7 +47,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
 exports.login = catchAsync(async (req, res, next) => {
   const user = await User.findOne(req.identifierQuery).select(
     baseSelect('accessCodeExpires')
-  )
+  ).exec()
 
   if (!user) {
     ERROR = new AppError('Invalid access code', UNAUTHORIZED_STATUS)
@@ -95,7 +95,7 @@ exports.getTokens = catchAsync(async (req, res, next) => {
   }
 
   const email = req.email.toLowerCase()
-  const user = await User.findOne({ email }).select(baseSelect('refreshToken'))
+  const user = await User.findOne({ email }).select(baseSelect('refreshToken')).exec()
 
   const invalidAuthCredentialsMsg = 'Invalid auth credentials'
 
@@ -155,7 +155,7 @@ exports.protect = catchAsync(async (req, _, next) => {
   if (token === null) return next(invalidCredentialsError)
 
   const decoded = await promisify(jwt.verify)(token, env.accessTokenSecret)
-  const user = await User.findOne({ email: decoded.email })
+  const user = await User.findOne({ email: decoded.email }).exec()
   if (!user) return next(invalidCredentialsError)
 
   req.currentUser = user

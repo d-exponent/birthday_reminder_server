@@ -1,23 +1,18 @@
-const usersRouter = require('express').Router()
+const router = require('express').Router()
 
 const userController = require('../controllers/user')
 const authController = require('../controllers/auth')
 const middleware = require('../controllers/middleware')
 
-usersRouter
-  .route('/')
-  .post(userController.createUser)
-  .get(
-    authController.protect,
-    authController.restrictTo('user'),
-    userController.getUsers
-  )
+router.post('/', userController.createUser)
 
-usersRouter.use(authController.protect)
-usersRouter
-  .route('/:identifier')
-  .get(middleware.setMongooseFindParams, userController.getUser)
-  .patch(middleware.setMongooseFindParams, userController.updateUser)
-  .delete(middleware.setMongooseFindParams, userController.deleteUser)
+router.use(authController.protect)
+router.get('/', authController.restrictTo('user'), userController.getUsers)
 
-module.exports = usersRouter
+router
+  .route('/:identifier', middleware.setMongooseFindParams)
+  .get(userController.getUser)
+  .patch(userController.updateUser)
+  .delete(userController.deleteUser)
+
+module.exports = router

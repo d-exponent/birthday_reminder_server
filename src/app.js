@@ -8,6 +8,8 @@ const morgan = require('morgan')
 const env = require('./settings/env')
 const userRouter = require('./routes/users')
 const authRouter = require('./routes/auth')
+const birthdayRouter = require('./routes/birthdays')
+const meRouter = require('./routes/me')
 const errorController = require('./controllers/error')
 
 const rateLimiter = rateLimit({
@@ -27,8 +29,10 @@ module.exports = () => {
   app.use(mongoSanitize())
   env.nodeEnv === 'development' && app.use(morgan('dev'))
 
-  app.use('/api/users', userRouter)
+  app.use('/api/me', meRouter)
   app.use('/api/auth', authRouter)
+  app.use('/api/users', userRouter)
+  app.use('/api/birthdays', birthdayRouter)
 
   app.use('*', errorController.wildRoutesHandler)
   app.use(errorController.globalErrorHandler)
