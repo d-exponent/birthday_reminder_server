@@ -7,12 +7,13 @@ const birthdayController = require('../controllers/birthday')
 router.post('/sign-up', userController.createUser)
 
 router.use(authController.protect)
-router.get('/', meController.getMe)
-
 router
-  .route('/birthdays')
-  .post(meController.addMyBirthday)
-  .get(meController.getMyBirthdays)
+  .route('/')
+  .get(meController.getMe)
+  .patch(meController.updateMe)
+  .delete(authController.setUserForlogout, meController.deleteMe)
+
+router.route('/birthdays').post(meController.addBirthday).get(meController.getMyBirthdays)
 
 router
   .route('/birthdays/:id')

@@ -6,7 +6,6 @@ const User = require('../models/user')
 const Email = require('../features/email')
 const AppError = require('../utils/appError')
 const catchAsync = require('../utils/catchAsync')
-const { sendResponse, baseSelect } = require('../utils/contollers')
 const {
   HTTP_STATUS_CODES,
   RESPONSE_TYPE,
@@ -14,97 +13,106 @@ const {
   USER_ROLES
 } = require('../settings/constants')
 const {
+  sendResponse,
+  baseSelect,
+  removeFalsyIsLoggedInIsActive
+} = require('../utils/contollers')
+const {
   generateAccessCode,
   getTimeIn,
   signRefreshToken,
   accessTokenCookieManager
 } = require('../utils/auth')
 
+let ERROR_MSG
 const UNAUTHORIZED_STATUS = HTTP_STATUS_CODES.error.unauthorized
 const NOT_FOUND_STATUS = HTTP_STATUS_CODES.error.notFound
-let ERROR
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.identifierQuery).exec()
+  const user = await User.findOne(req.identifierQuery)
+    .select(baseSelect('isActive'))
+    .exec()
 
-  if (!user) {
-    ERROR = new AppError('The user was not found', NOT_FOUND_STATUS)
-    return next(ERROR)
-  }
+  ERROR_MSG = 'The user does not exist'
+  if (!user || !user.isActive) return next(new AppError(ERROR_MSG, NOT_FOUND_STATUS))
 
   user.accessCode = generateAccessCode()
   user.accessCodeExpires = getTimeIn((minutes = 10))
-  user.verfied = false
   await user.save()
 
   const { name, email, accessCode } = user
-  const message = `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
+  env.isProduction && (await new Email(name, email).sendAccessCode(accessCode))
 
-  await new Email(name, email).sendAccessCode(accessCode)
-  sendResponse(RESPONSE_TYPE.success, res, { message })
-})
-
-exports.login = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.identifierQuery).select(
-    baseSelect('accessCodeExpires')
-  ).exec()
-
-  if (!user) {
-    ERROR = new AppError('Invalid access code', UNAUTHORIZED_STATUS)
-    return next(ERROR)
-  }
-
-  if (Date.now() > user.accessCodeExpires.getTime()) {
-    return next(new AppError('Expired credentails', UNAUTHORIZED_STATUS))
-  }
-
-  const accessToken = accessTokenCookieManager(req, res, user.email)
-  const refreshToken = signRefreshToken(user.email)
-
-  user.accessCode = undefined
-  user.accessCodeExpires = undefined
-  user.verfied = true
-  user.refreshToken = refreshToken
-
-  await user.save()
   sendResponse(RESPONSE_TYPE.success, res, {
-    data: {
-      ...JSON.parse(JSON.stringify(user)),
-      refreshToken: undefined,
-      verfied: undefined
-    },
-    accessToken,
-    refreshToken
+    message: `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
   })
 })
 
-exports.logout = catchAsync(async (req, res) => {
-  const user = await User.findOne({ email: req.currentUser.email })
-  user.refreshToken = undefined
-  user.verfied = undefined
+exports.login = catchAsync(async (req, res, next) => {
+  const user = await User.findOne(req.identifierQuery)
+    .select(baseSelect('accessCodeExpires'))
+    .exec()
+
+  if (!user) {
+    ERROR_MSG = 'Invalid access code'
+    return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
+  }
+
+  if (Date.now() > user.accessCodeExpires.getTime()) {
+    ERROR_MSG = 'Invalid access code'
+    return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
+  }
+
+  user.accessCode = undefined
+  user.accessCodeExpires = undefined
+  user.isLoggedIn = true
+  user.isActive = true
+  user.refreshToken = signRefreshToken(user.email)
   await user.save()
+  
+  sendResponse(RESPONSE_TYPE.success, res, {
+    accessToken: accessTokenCookieManager(req, res, user.email),
+    refreshToken: user.refreshToken,
+    data: {
+      ...removeFalsyIsLoggedInIsActive(user),
+      refreshToken: undefined
+    }
+  })
+})
+
+exports.setUserForlogout = async (req, res, next) => {
+  req.currentUser.isLoggedIn = false
+  req.currentUser.refreshToken = undefined
+  req.currentUser.accessCode = undefined
+  req.currentUser.accessCodeExpires = undefined
 
   accessTokenCookieManager(req, res, '', true)
-  sendResponse(RESPONSE_TYPE.success, res, { status: 204, message: 'logged out' })
+  next()
+}
+
+exports.logout = catchAsync(async (req, res) => {
+  await req.currentUser.save()
+  sendResponse(RESPONSE_TYPE.success, res, {
+    status: HTTP_STATUS_CODES.success.noContent,
+    message: ''
+  })
 })
 
 exports.getTokens = catchAsync(async (req, res, next) => {
   const refreshToken = req.headers['x-auth-refresh']
   if (!refreshToken) {
-    return next(new AppError('Invalid token', UNAUTHORIZED_STATUS))
+    ERROR_MSG = 'Invalid Token'
+    return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
   }
 
   const email = req.email.toLowerCase()
   const user = await User.findOne({ email }).select(baseSelect('refreshToken')).exec()
 
-  const invalidAuthCredentialsMsg = 'Invalid auth credentials'
-
-  if (!user) {
-    return next(new AppError(invalidAuthCredentialsMsg, UNAUTHORIZED_STATUS))
-  }
+  ERROR_MSG = 'Invalid auth credentials'
+  if (!user) return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
 
   if (user.refreshToken !== refreshToken) {
-    return next(new AppError(invalidAuthCredentialsMsg, UNAUTHORIZED_STATUS))
+    return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
   }
 
   try {
@@ -129,14 +137,9 @@ exports.protect = catchAsync(async (req, _, next) => {
   const cookieToken = req.signedCookies[env.cookieName] || null
   const headerAuthorization = req.headers['authorization'] || null
 
-  if (!cookieToken && !headerAuthorization) {
-    return next(
-      new AppError(
-        'Please Login with valid credentials',
-        HTTP_STATUS_CODES.error.unauthorized
-      )
-    )
-  }
+  ERROR_MSG = 'Provide loging credentials'
+  const provideCredentialsError = new AppError(ERROR_MSG, UNAUTHORIZED_STATUS)
+  if (!cookieToken && !headerAuthorization) return next(provideCredentialsError)
 
   const token =
     cookieToken && REGEX.jwtToken.test(cookieToken)
@@ -147,16 +150,21 @@ exports.protect = catchAsync(async (req, _, next) => {
       ? headerAuthorization.split(' ')[1]
       : null
 
-  const invalidCredentialsError = new AppError(
-    'Invalid login credentials. Please login',
-    HTTP_STATUS_CODES.error.unauthorized
-  )
-
-  if (token === null) return next(invalidCredentialsError)
+  if (token === null) return next(provideCredentialsError)
 
   const decoded = await promisify(jwt.verify)(token, env.accessTokenSecret)
-  const user = await User.findOne({ email: decoded.email }).exec()
-  if (!user) return next(invalidCredentialsError)
+  const user = await User.findOne({ email: decoded.email })
+    .select(baseSelect('isActive', 'role', 'isLoggedIn'))
+    .exec()
+
+  ERROR_MSG = 'Login credentials is not associated with any user'
+  if (!user) return next(new AppError(ERROR_MSG, NOT_FOUND_STATUS))
+
+  ERROR_MSG = 'This user no longer exists in our records'
+  if (!user.isActive) return next(new AppError(ERROR_MSG, NOT_FOUND_STATUS))
+
+  ERROR_MSG = 'You are not logged in. Please Login'
+  if (!user.isLoggedIn) return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
 
   req.currentUser = user
   next()
@@ -166,7 +174,7 @@ exports.restrictTo = (...args) => {
   // Ensure at least one role is passed
   if (!args.length) throw new Error('restrictTo requires at least one valid role')
 
-  // ENSURE ONLY VALID ROLES ARE PASSED AS ARGUMENTS
+  // Ensure only valid roles parameters are passed
   args.forEach((arg) => {
     if (!USER_ROLES.includes(arg)) {
       throw new Error(`${arg} is not a valid role`)
@@ -175,12 +183,8 @@ exports.restrictTo = (...args) => {
 
   return (req, _, next) => {
     if (!args.includes(req.currentUser.role)) {
-      return next(
-        new AppError(
-          'You do not have permission to access this resource',
-          HTTP_STATUS_CODES.error.forbidden
-        )
-      )
+      ERROR_MSG = 'You do not have permission to access this resource'
+      return next(new AppError(ERROR_MSG, HTTP_STATUS_CODES.error.forbidden))
     }
 
     next()

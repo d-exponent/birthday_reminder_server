@@ -2,7 +2,7 @@ exports.HTTP_STATUS_CODES = {
   success: {
     ok: 200,
     created: 201,
-    noContent: 2014
+    noContent: 204
   },
   error: {
     unauthorized: 401,

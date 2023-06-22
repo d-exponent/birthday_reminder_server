@@ -4,15 +4,13 @@ const userController = require('../controllers/user')
 const authController = require('../controllers/auth')
 const middleware = require('../controllers/middleware')
 
-router.post('/', userController.createUser)
-
-router.use(authController.protect)
-router.get('/', authController.restrictTo('user'), userController.getUsers)
+router.use(authController.protect, authController.restrictTo('admin'))
+router.route('/').get(userController.getUsers).post(userController.createUser)
 
 router
-  .route('/:identifier', middleware.setMongooseFindParams)
-  .get(userController.getUser)
-  .patch(userController.updateUser)
-  .delete(userController.deleteUser)
+  .route('/:identifier')
+  .get(middleware.setMongooseFindParams, userController.getUser)
+  .patch(middleware.setMongooseFindParams, userController.updateUser)
+  .delete(middleware.setMongooseFindParams, userController.deleteUser)
 
 module.exports = router

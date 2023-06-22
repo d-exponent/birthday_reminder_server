@@ -22,7 +22,6 @@ exports.checkUserOwnsBirthday = catchAsync(async (req, _, next) => {
   }
 
   const stringify = JSON.stringify
-
   const method = req.method
 
   if (stringify(birthday.owner) !== stringify(req.currentUser['_id'])) {
@@ -104,5 +103,8 @@ exports.updateBirthday = catchAsync(async ({ body, params: { id } }, res) => {
 
 exports.deleteBirthday = catchAsync(async ({ params: { id } }, res) => {
   await BirthDay.findByIdAndDelete(id)
-  sendResponse(RESPONSE_TYPE.success, res, { status: 204, message: '' })
+  sendResponse(RESPONSE_TYPE.success, res, {
+    status: HTTP_STATUS_CODES.success.noContent,
+    message: ''
+  })
 })

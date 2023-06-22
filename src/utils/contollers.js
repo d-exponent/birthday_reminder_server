@@ -1,4 +1,5 @@
 const { HTTP_STATUS_CODES } = require('../settings/constants')
+const AppError = require('./appError')
 
 exports.sendResponse = (type, res, params) => {
   const response = { ...params }
@@ -19,11 +20,30 @@ exports.sendResponse = (type, res, params) => {
 }
 
 exports.baseSelect = (...args) => {
-  let selected = 'name email phone'
+  let defaultSelected = 'name email phone'
 
-  if (args) {
-    args.forEach((arg) => (selected = `${selected} ${arg}`))
+  args.length && args.forEach((arg) => (defaultSelected = `${defaultSelected} ${arg}`))
+
+  return defaultSelected
+}
+
+exports.purifyDoc = (doc) => JSON.parse(JSON.stringify(doc))
+
+exports.removeFalsyProperties = (doc) => {
+  const filteredDoc = {}
+  const pureDoc = this.purifyDoc(doc)
+
+  Object.entries(pureDoc).forEach(([key, value]) =>
+    value ? (filteredDoc[key] = value) : null
+  )
+
+  return filteredDoc
+}
+
+exports.removeFalsyIsLoggedInIsActive = (doc) => {
+  return {
+    ...this.removeFalsyProperties(doc),
+    isLoggedIn: undefined,
+    isActive: undefined
   }
-
-  return selected
 }

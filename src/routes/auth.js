@@ -3,6 +3,13 @@ const authController = require('../controllers/auth')
 const middleware = require('../controllers/middleware')
 
 router.get(
+  '/logout',
+  authController.protect,
+  authController.setUserForlogout,
+  authController.logout
+)
+
+router.get(
   '/:identifier',
   middleware.setMongooseFindParams,
   authController.requestAccessCode

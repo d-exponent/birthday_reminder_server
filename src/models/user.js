@@ -5,10 +5,7 @@ const { REGEX, SCHEMA_OPTIONS, USER_ROLES } = require('../settings/constants')
 
 const userSchema = new Schema(
   {
-    name: {
-      type: String,
-      required: [true, 'A user must have a name']
-    },
+    name: { type: String, required: [true, 'A user must have a name'] },
     email: {
       type: String,
       unique: true,
@@ -22,41 +19,26 @@ const userSchema = new Schema(
       lowercase: true,
       validate: [(phone) => REGEX.phone.test(phone), 'Invalid phone number']
     },
-    accessCode: {
-      type: String,
-      select: false
-    },
-    accessCodeExpires: {
-      type: Date,
-      select: false
-    },
-    refreshToken: {
-      type: String,
-      select: false
-    },
-    verfied: {
-      type: Boolean,
-      default: false
-    },
     role: {
       type: String,
       enum: USER_ROLES,
       default: USER_ROLES[0] //user
     },
-    isActive: {
-      type: Boolean,
-      default: true
-    },
-    created_at: {
-      type: Date,
-      default: Date.now()
-    }
+    accessCode: { type: String, select: false },
+    accessCodeExpires: { type: Date, select: false },
+    refreshToken: { type: String, select: false },
+    isLoggedIn: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: false },
+    updatedAt: { type: Date, select: false },
+    created_at: { type: Date, default: Date.now() },
   },
   SCHEMA_OPTIONS
 )
 
 userSchema.pre('save', function (next) {
-  this.name = namesUtils.titleCaseNames(this.name)
+  if (this.isNew) {
+    this.name = namesUtils.titleCaseNames(this.name)
+  }
   next()
 })
 
