@@ -69,7 +69,7 @@ exports.login = catchAsync(async (req, res, next) => {
   user.isActive = true
   user.refreshToken = signRefreshToken(user.email)
   await user.save()
-  
+
   sendResponse(RESPONSE_TYPE.success, res, {
     accessToken: accessTokenCookieManager(req, res, user.email),
     refreshToken: user.refreshToken,

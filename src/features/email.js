@@ -22,7 +22,7 @@ class Email {
 
   async send(params) {
     await this.transport().sendMail({
-      from: 'Eclipse Todo',
+      from: 'Eclipse Birthday Reminder',
       to: this.userEmail,
       text: params.text,
       subject: params.subject
@@ -41,7 +41,24 @@ class Email {
       it expires in 10 minutes.
 
       Regards,
-      Eclipse Todo Team
+      Eclipse Birthday Reminder
+      `
+    })
+  }
+
+  async sendBirthdayRemind({ name, phone, email }) {
+    await this.send({
+      subject: `BIRTHDAY ALERT FOR ${this.userName}  `,
+      text: `
+      It's ${name}'s birthday today.
+
+      This is a reminder to wish them a happy birthday
+
+      ${phone ? `${name}'s Phone Number: ``${phone}` : ''}
+      ${email ? `${name}'s Email Address: ``${email}` : ''}
+
+      Regards,
+      Eclipse Birthday Reminder
       `
     })
   }
