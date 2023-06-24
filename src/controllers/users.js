@@ -1,10 +1,7 @@
 const User = require('../models/user')
 const AppError = require('../utils/appError')
 const catchAsync = require('../utils/catchAsync')
-const {
-  sendResponse,
-  removeFalsyIsLoggedInIsActive
-} = require('../utils/contollers')
+const { sendResponse, removeFalsyIsLoggedInIsActive } = require('../utils/contollers')
 const {
   HTTP_STATUS_CODES,
   RESPONSE_TYPE,

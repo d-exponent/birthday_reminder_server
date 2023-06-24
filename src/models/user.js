@@ -16,8 +16,7 @@ const userSchema = new Schema(
     phone: {
       type: String,
       unique: true,
-      lowercase: true,
-      validate: [(phone) => REGEX.phone.test(phone), 'Invalid phone number']
+      // validate: [(phone) => REGEX.phone.test(phone), 'Invalid phone number']
     },
     role: {
       type: String,

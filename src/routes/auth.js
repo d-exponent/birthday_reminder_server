@@ -1,6 +1,6 @@
 const router = require('express').Router()
 const authController = require('../controllers/auth')
-const middleware = require('../controllers/middleware')
+const middleware = require('../controllers/middlewares')
 
 router.get(
   '/logout',

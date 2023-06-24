@@ -9,6 +9,7 @@ const {
   HTTP_STATUS_CODES
 } = require('../settings/constants')
 
+let error_msg
 exports.getMe = catchAsync(async (req, res) => {
   sendResponse(RESPONSE_TYPE.success, res, {
     data: { ...removeFalsyIsLoggedInIsActive(req.currentUser), role: undefined }
@@ -48,19 +49,13 @@ exports.addBirthday = catchAsync(async (req, res) => {
 
 exports.getMyBirthdays = catchAsync(async (req, res, next) => {
   const birthdays = await Birthday.find({ owner: req.currentUser['_id'] })
-    .select('name month day phone email')
+    .select('-owner')
     .exec()
 
   if (!birthdays.length) {
-    return next(
-      new AppError(
-        ` There is no birthday associated with ${req.currentUser.name}`,
-        HTTP_STATUS_CODES.error.notFound
-      )
-    )
+    error_msg = ` There is no birthday associated with ${req.currentUser.name}`
+    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
   }
 
-  sendResponse(RESPONSE_TYPE.success, res, {
-    data: birthdays
-  })
+  sendResponse(RESPONSE_TYPE.success, res, { data: birthdays })
 })

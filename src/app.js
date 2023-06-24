@@ -10,7 +10,7 @@ const userRouter = require('./routes/users')
 const authRouter = require('./routes/auth')
 const birthdayRouter = require('./routes/birthdays')
 const meRouter = require('./routes/me')
-const errorController = require('./controllers/error')
+const errorController = require('./controllers/errors')
 
 const rateLimiter = rateLimit({
   windowMs: 20 * 60 * 1000,

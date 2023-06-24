@@ -8,17 +8,15 @@ const {
   FIND_UPDATE_OPTIONS
 } = require('../settings/constants')
 
+let error_msg
+
 exports.checkUserOwnsBirthday = catchAsync(async (req, _, next) => {
   // CRUD on birthdays can only be done by the user who created it
   const birthday = await BirthDay.findById(req.params.id).exec()
 
   if (!birthday) {
-    return next(
-      new AppError(
-        "The requested birthday doesn't exists.",
-        HTTP_STATUS_CODES.error.notFound
-      )
-    )
+    error_msg = "The requested birthday doesn't exists."
+    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
   }
 
   const stringify = JSON.stringify
@@ -27,12 +25,8 @@ exports.checkUserOwnsBirthday = catchAsync(async (req, _, next) => {
   if (stringify(birthday.owner) !== stringify(req.currentUser['_id'])) {
     const crud = method === 'PATCH' ? 'update' : method === 'DELETE' ? 'delete' : 'read'
 
-    return next(
-      new AppError(
-        `User can only ${crud} the birthday(s) that the user created`,
-        HTTP_STATUS_CODES.error.forbidden
-      )
-    )
+    error_msg = `User can only ${crud} the birthday(s) that the user created`
+    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.forbidden))
   }
 
   next()
@@ -49,12 +43,8 @@ exports.getBirthdays = catchAsync(async (_, res, next) => {
   const birthdays = await BirthDay.find().exec()
 
   if (!birthdays.length) {
-    return next(
-      new AppError(
-        'There are no birthdays at this time',
-        HTTP_STATUS_CODES.error.notFound
-      )
-    )
+    error_msg = 'There are no birthdays at this time'
+    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
   }
 
   sendResponse(RESPONSE_TYPE.success, res, {
@@ -69,12 +59,8 @@ exports.getBirthdaysForOwner = catchAsync(async (req, res, next) => {
     .exec()
 
   if (!birthdays.length) {
-    return next(
-      new AppError(
-        ` There is no birthday associated with ${req.currentUser.name}`,
-        HTTP_STATUS_CODES.error.notFound
-      )
-    )
+    error_msg = ` There is no birthday associated with ${req.currentUser.name}`
+    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
   }
 
   sendResponse(RESPONSE_TYPE.success, res, {
@@ -84,15 +70,13 @@ exports.getBirthdaysForOwner = catchAsync(async (req, res, next) => {
 
 exports.getBirthday = catchAsync(async ({ params: { id } }, res, next) => {
   const birthday = await BirthDay.findById(id).exec()
+
   if (!birthday) {
-    return next(
-      new AppError("The birthday doesn't exist", HTTP_STATUS_CODES.error.notFound)
-    )
+    error_msg = "The birthday doesn't exist"
+    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
   }
 
-  sendResponse(RESPONSE_TYPE.success, res, {
-    data: birthday
-  })
+  sendResponse(RESPONSE_TYPE.success, res, {data: birthday})
 })
 
 exports.updateBirthday = catchAsync(async ({ body, params: { id } }, res) => {

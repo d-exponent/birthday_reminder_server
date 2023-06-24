@@ -1,8 +1,10 @@
 const env = require('../settings/env')
 const jwt = require('jsonwebtoken')
 
+exports.generateRandomNumber = (limit = 9) => Math.round(Math.random() * limit)
+
 exports.generateAccessCode = () => {
-  return [...Array(4).keys()].map(() => Math.round(Math.random() * 9)).join('')
+  return [...Array(4).keys()].map(() => this.generateRandomNumber()).join('')
 }
 
 exports.getTimeIn = (minutes = 0) => new Date(Date.now() + minutes * 60000)

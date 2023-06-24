@@ -24,7 +24,7 @@ const {
   accessTokenCookieManager
 } = require('../utils/auth')
 
-let ERROR_MSG
+let error_msg
 const UNAUTHORIZED_STATUS = HTTP_STATUS_CODES.error.unauthorized
 const NOT_FOUND_STATUS = HTTP_STATUS_CODES.error.notFound
 
@@ -33,8 +33,8 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
     .select(baseSelect('isActive'))
     .exec()
 
-  ERROR_MSG = 'The user does not exist'
-  if (!user || !user.isActive) return next(new AppError(ERROR_MSG, NOT_FOUND_STATUS))
+  error_msg = 'The user does not exist'
+  if (!user || !user.isActive) return next(new AppError(error_msg, NOT_FOUND_STATUS))
 
   user.accessCode = generateAccessCode()
   user.accessCodeExpires = getTimeIn((minutes = 10))
@@ -53,14 +53,11 @@ exports.login = catchAsync(async (req, res, next) => {
     .select(baseSelect('accessCodeExpires'))
     .exec()
 
-  if (!user) {
-    ERROR_MSG = 'Invalid access code'
-    return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
-  }
+  const error = new AppError('Invalid access code', UNAUTHORIZED_STATUS)
+  if (!user) return next(error)
 
   if (Date.now() > user.accessCodeExpires.getTime()) {
-    ERROR_MSG = 'Invalid access code'
-    return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
+    return next(error)
   }
 
   user.accessCode = undefined
@@ -101,19 +98,15 @@ exports.logout = catchAsync(async (req, res) => {
 exports.getTokens = catchAsync(async (req, res, next) => {
   const refreshToken = req.headers['x-auth-refresh']
   if (!refreshToken) {
-    ERROR_MSG = 'Invalid Token'
-    return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
+    return next(new AppError('Invalid Token', UNAUTHORIZED_STATUS))
   }
 
   const email = req.email.toLowerCase()
   const user = await User.findOne({ email }).select(baseSelect('refreshToken')).exec()
 
-  ERROR_MSG = 'Invalid auth credentials'
-  if (!user) return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
-
-  if (user.refreshToken !== refreshToken) {
-    return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
-  }
+  const invalidAuthErr = new AppError('Invalid auth credentials', UNAUTHORIZED_STATUS)
+  if (!user) return next(invalidAuthErr)
+  if (user.refreshToken !== refreshToken) return next(invalidAuthErr)
 
   try {
     await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
@@ -137,8 +130,8 @@ exports.protect = catchAsync(async (req, _, next) => {
   const cookieToken = req.signedCookies[env.cookieName] || null
   const headerAuthorization = req.headers['authorization'] || null
 
-  ERROR_MSG = 'Provide loging credentials'
-  const provideCredentialsError = new AppError(ERROR_MSG, UNAUTHORIZED_STATUS)
+  error_msg = 'Provide loging credentials'
+  const provideCredentialsError = new AppError(error_msg, UNAUTHORIZED_STATUS)
   if (!cookieToken && !headerAuthorization) return next(provideCredentialsError)
 
   const token =
@@ -157,14 +150,14 @@ exports.protect = catchAsync(async (req, _, next) => {
     .select(baseSelect('isActive', 'role', 'isLoggedIn'))
     .exec()
 
-  ERROR_MSG = 'Login credentials is not associated with any user'
-  if (!user) return next(new AppError(ERROR_MSG, NOT_FOUND_STATUS))
+  error_msg = 'Login credentials is not associated with any user'
+  if (!user) return next(new AppError(error_msg, NOT_FOUND_STATUS))
 
-  ERROR_MSG = 'This user no longer exists in our records'
-  if (!user.isActive) return next(new AppError(ERROR_MSG, NOT_FOUND_STATUS))
+  error_msg = 'This user no longer exists in our records'
+  if (!user.isActive) return next(new AppError(error_msg, NOT_FOUND_STATUS))
 
-  ERROR_MSG = 'You are not logged in. Please Login'
-  if (!user.isLoggedIn) return next(new AppError(ERROR_MSG, UNAUTHORIZED_STATUS))
+  error_msg = 'You are not logged in. Please Login'
+  if (!user.isLoggedIn) return next(new AppError(error_msg, UNAUTHORIZED_STATUS))
 
   req.currentUser = user
   next()
@@ -183,8 +176,8 @@ exports.restrictTo = (...args) => {
 
   return (req, _, next) => {
     if (!args.includes(req.currentUser.role)) {
-      ERROR_MSG = 'You do not have permission to access this resource'
-      return next(new AppError(ERROR_MSG, HTTP_STATUS_CODES.error.forbidden))
+      error_msg = 'You do not have permission to access this resource'
+      return next(new AppError(error_msg, HTTP_STATUS_CODES.error.forbidden))
     }
 
     next()

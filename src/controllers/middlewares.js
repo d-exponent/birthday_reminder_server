@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const AppError = require('../utils/appError')
 const { REGEX, HTTP_STATUS_CODES } = require('../settings/constants')
 
+let error_msg
 exports.setMongooseFindParams = (req, _, next) => {
   const query = {}
   const { params } = req
@@ -24,12 +25,8 @@ exports.setMongooseFindParams = (req, _, next) => {
         query['_id'] = new mongoose.Types.ObjectId(identifier)
         break
       default:
-        return next(
-          new AppError(
-            `The url parameter ${identifier} on ${req.originalUrl} did not match any expected expression`,
-            HTTP_STATUS_CODES.error.badRequest
-          )
-        )
+        error_msg = `The url parameter ${identifier} on ${req.originalUrl} did not match any expected expression`
+        return next(new AppError(error_msg, HTTP_STATUS_CODES.error.badRequest))
     }
   }
 
@@ -41,12 +38,8 @@ exports.setMongooseFindParams = (req, _, next) => {
         break
 
       default:
-        return next(
-          new AppError(
-            `The access code ${accessCode} on ${req.originalUrl} is wrongly formatted!`,
-            HTTP_STATUS_CODES.error.badRequest
-          )
-        )
+        error_msg = `The access code ${accessCode} on ${req.originalUrl} is wrongly formatted!`
+        return next(new AppError(error_msg, HTTP_STATUS_CODES.error.badRequest))
     }
   }
 

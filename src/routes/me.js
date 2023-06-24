@@ -1,8 +1,8 @@
 const router = require('express').Router()
 const meController = require('../controllers/me')
-const userController = require('../controllers/user')
+const userController = require('../controllers/users')
 const authController = require('../controllers/auth')
-const birthdayController = require('../controllers/birthday')
+const birthdayController = require('../controllers/birthdays')
 
 router.post('/sign-up', userController.createUser)
 

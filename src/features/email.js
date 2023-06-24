@@ -4,10 +4,9 @@ const env = require('../settings/env')
 class Email {
   appEmail = env.appEmail
 
-  constructor(userName, userEmail, url = '') {
+  constructor(userName, userEmail) {
     this.userName = userName
     this.userEmail = userEmail
-    this.url = url
   }
 
   transport() {
@@ -46,7 +45,7 @@ class Email {
     })
   }
 
-  async sendBirthdayRemind({ name, phone, email }) {
+  async sendBirthdayReminder({ name, phone, email }) {
     await this.send({
       subject: `BIRTHDAY ALERT FOR ${this.userName}  `,
       text: `
@@ -54,8 +53,8 @@ class Email {
 
       This is a reminder to wish them a happy birthday
 
-      ${phone ? `${name}'s Phone Number: ``${phone}` : ''}
-      ${email ? `${name}'s Email Address: ``${email}` : ''}
+      ${phone ? 'Phone Number: ' + phone : ''}
+      ${email ? 'Email Address: ' + email : ''}
 
       Regards,
       Eclipse Birthday Reminder

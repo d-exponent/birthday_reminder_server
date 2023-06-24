@@ -10,12 +10,14 @@ const birthdaySchema = new mongoose.Schema({
     type: Number,
     min: 1,
     max: 12,
+    index: true,
     required: [true, 'A birthday must have a month']
   },
   day: {
     type: Number,
     min: 1,
     max: 31,
+    index: true,
     required: [true, 'A birthday must have a day']
   },
   owner: {
@@ -37,6 +39,7 @@ birthdaySchema.pre('save', function (next) {
 
 birthdaySchema.pre(/^find/, function (next) {
   this.select('-__v')
+  this.populate({ path: 'owner', select: 'name email' })
   next()
 })
 
