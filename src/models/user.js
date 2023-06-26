@@ -1,7 +1,7 @@
 const { Schema, model } = require('mongoose')
 
 const namesUtils = require('../utils/names')
-const { REGEX, SCHEMA_OPTIONS, USER_ROLES } = require('../settings/constants')
+const { SCHEMA_OPTIONS, USER_ROLES } = require('../settings/constants')
 
 const userSchema = new Schema(
   {
@@ -15,7 +15,7 @@ const userSchema = new Schema(
     },
     phone: {
       type: String,
-      unique: true,
+      unique: true
       // validate: [(phone) => REGEX.phone.test(phone), 'Invalid phone number']
     },
     role: {
@@ -29,7 +29,7 @@ const userSchema = new Schema(
     isLoggedIn: { type: Boolean, default: false },
     isActive: { type: Boolean, default: false },
     updatedAt: { type: Date, select: false },
-    created_at: { type: Date, default: Date.now() },
+    created_at: { type: Date, default: Date.now() }
   },
   SCHEMA_OPTIONS
 )

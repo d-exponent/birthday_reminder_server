@@ -1,19 +1,35 @@
 require('dotenv/config')
 
+const env = process.env
+
 module.exports = {
-  db: process.env.DB,
-  nodeEnv: process.env.NODE_ENV,
-  port: process.env.PORT || 5000,
-  appEmail: process.env.APP_EMAIL,
-  dbPassword: process.env.DB_PASSWORD,
-  cookieName: process.env.COOKIE_NAME,
-  dbUsername: process.env.DB_USERNAME,
-  devHttpProtocol: process.env.DEV_HTTP_PROTOCOL || 'http',
-  cookieSecret: process.env.COOKIE_SECRET,
-  appEmailPass: process.env.EMAIL_PASSWORD,
-  accessTokenSecret: process.env.ACCESS_TOKEN_SECRET,
-  isProduction: process.env.NODE_ENV === 'production',
-  refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,
-  refreshTokenExpires: process.env.REFRESH_TOKEN_EXPIRES,
-  accessTokenExpires: Number(process.env.ACCESS_TOKEN_EXPIRES)
+  // App server settings
+  nodeEnv: env.NODE_ENV,
+  port: env.PORT || 5000,
+  isProduction: env.NODE_ENV === 'production',
+  devHttpProtocol: env.DEV_HTTP_PROTOCOL || 'http',
+
+  // Database
+  db: env.DB,
+  dbPassword: env.DB_PASSWORD,
+  dbUsername: env.DB_USERNAME,
+
+  // For Nodemailer (PROD)
+  appEmail: env.APP_EMAIL,
+  appEmailPass: env.EMAIL_PASSWORD,
+  appEmailService: env.APP_EMAIL_SERVICE,
+
+  // For Nodemailer (DEV)
+  devEmailHost: env.DEV_EMAIL_HOST,
+  devEmailUser: env.DEV_EMAIL_USER,
+  devEmailPassword: env.DEV_EMAIL_PASS,
+  devEmailPort: Number(env.DEV_EMAIL_PORT),
+
+  // Auth
+  cookieName: env.COOKIE_NAME,
+  cookieSecret: env.COOKIE_SECRET,
+  accessTokenSecret: env.ACCESS_TOKEN_SECRET,
+  refreshTokenSecret: env.REFRESH_TOKEN_SECRET,
+  refreshTokenExpires: env.REFRESH_TOKEN_EXPIRES,
+  accessTokenExpires: Number(env.ACCESS_TOKEN_EXPIRES)
 }

@@ -1,6 +1,5 @@
 const { HTTP_STATUS_CODES } = require('../settings/constants')
 
-
 exports.sendResponse = (type, res, params) => {
   const response = { ...params }
 

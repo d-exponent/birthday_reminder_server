@@ -1,6 +1,7 @@
 const BirthDay = require('../models/birthday')
-const AppError = require('../utils/appError')
-const catchAsync = require('../utils/catchAsync')
+const AppError = require('../utils/app-error')
+const catchAsync = require('../utils/catch-async')
+const queryBuilder = require('../utils/query-builder')
 const { sendResponse } = require('../utils/contollers')
 const {
   HTTP_STATUS_CODES,
@@ -39,8 +40,14 @@ exports.addBirthday = catchAsync(async (req, res) => {
   })
 })
 
-exports.getBirthdays = catchAsync(async (_, res, next) => {
-  const birthdays = await BirthDay.find().exec()
+exports.getBirthdays = catchAsync(async (req, res, next) => {
+  const query = new queryBuilder(BirthDay.find(), req.query)
+    .filter()
+    .fields()
+    .page()
+    .sort()
+
+  const birthdays = await query.mongooseQuery.exec()
 
   if (!birthdays.length) {
     error_msg = 'There are no birthdays at this time'
@@ -48,6 +55,7 @@ exports.getBirthdays = catchAsync(async (_, res, next) => {
   }
 
   sendResponse(RESPONSE_TYPE.success, res, {
+    results: birthdays.length,
     data: birthdays,
     status: HTTP_STATUS_CODES.success.created
   })
@@ -76,7 +84,7 @@ exports.getBirthday = catchAsync(async ({ params: { id } }, res, next) => {
     return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
   }
 
-  sendResponse(RESPONSE_TYPE.success, res, {data: birthday})
+  sendResponse(RESPONSE_TYPE.success, res, { data: birthday })
 })
 
 exports.updateBirthday = catchAsync(async ({ body, params: { id } }, res) => {

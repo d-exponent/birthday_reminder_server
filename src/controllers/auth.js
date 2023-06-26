@@ -4,8 +4,8 @@ const { promisify } = require('util')
 const env = require('../settings/env')
 const User = require('../models/user')
 const Email = require('../features/email')
-const AppError = require('../utils/appError')
-const catchAsync = require('../utils/catchAsync')
+const AppError = require('../utils/app-error')
+const catchAsync = require('../utils/catch-async')
 const {
   HTTP_STATUS_CODES,
   RESPONSE_TYPE,
@@ -29,9 +29,7 @@ const UNAUTHORIZED_STATUS = HTTP_STATUS_CODES.error.unauthorized
 const NOT_FOUND_STATUS = HTTP_STATUS_CODES.error.notFound
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.identifierQuery)
-    .select(baseSelect('isActive'))
-    .exec()
+  const user = await User.findOne(req.customQuery).select(baseSelect('isActive')).exec()
 
   error_msg = 'The user does not exist'
   if (!user || !user.isActive) return next(new AppError(error_msg, NOT_FOUND_STATUS))
@@ -40,8 +38,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
   user.accessCodeExpires = getTimeIn((minutes = 10))
   await user.save()
 
-  const { name, email, accessCode } = user
-  env.isProduction && (await new Email(name, email).sendAccessCode(accessCode))
+  await new Email(user.name, user.email).sendAccessCode(user.accessCode)
 
   sendResponse(RESPONSE_TYPE.success, res, {
     message: `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
@@ -49,7 +46,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
 })
 
 exports.login = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.identifierQuery)
+  const user = await User.findOne({ accessCode: req.params.accessCode })
     .select(baseSelect('accessCodeExpires'))
     .exec()
 
@@ -98,11 +95,16 @@ exports.logout = catchAsync(async (req, res) => {
 exports.getTokens = catchAsync(async (req, res, next) => {
   const refreshToken = req.headers['x-auth-refresh']
   if (!refreshToken) {
-    return next(new AppError('Invalid Token', UNAUTHORIZED_STATUS))
+    return next(new AppError("Provide the user's refresh token", UNAUTHORIZED_STATUS))
   }
 
-  const email = req.email.toLowerCase()
-  const user = await User.findOne({ email }).select(baseSelect('refreshToken')).exec()
+  if (!REGEX.jwtToken.test(refreshToken)) {
+    return next(new AppError('Invalid token', UNAUTHORIZED_STATUS))
+  }
+
+  const user = await User.findOne({ refreshToken })
+    .select(baseSelect('refreshToken'))
+    .exec()
 
   const invalidAuthErr = new AppError('Invalid auth credentials', UNAUTHORIZED_STATUS)
   if (!user) return next(invalidAuthErr)
@@ -121,7 +123,7 @@ exports.getTokens = catchAsync(async (req, res, next) => {
 
   sendResponse(RESPONSE_TYPE.success, res, {
     refreshToken: user.refreshToken,
-    accessToken: accessTokenCookieManager(req, res, email),
+    accessToken: accessTokenCookieManager(req, res, user.email),
     status: HTTP_STATUS_CODES.success.created
   })
 })
@@ -150,11 +152,9 @@ exports.protect = catchAsync(async (req, _, next) => {
     .select(baseSelect('isActive', 'role', 'isLoggedIn'))
     .exec()
 
-  error_msg = 'Login credentials is not associated with any user'
-  if (!user) return next(new AppError(error_msg, NOT_FOUND_STATUS))
+  const invalidCredError = new AppError('Invalid log-in credentials', UNAUTHORIZED_STATUS)
 
-  error_msg = 'This user no longer exists in our records'
-  if (!user.isActive) return next(new AppError(error_msg, NOT_FOUND_STATUS))
+  if (!user || !user.isActive) return next(invalidCredError)
 
   error_msg = 'You are not logged in. Please Login'
   if (!user.isLoggedIn) return next(new AppError(error_msg, UNAUTHORIZED_STATUS))
@@ -163,7 +163,7 @@ exports.protect = catchAsync(async (req, _, next) => {
   next()
 })
 
-exports.restrictTo = (...args) => {
+exports.permit = (...args) => {
   // Ensure at least one role is passed
   if (!args.length) throw new Error('restrictTo requires at least one valid role')
 

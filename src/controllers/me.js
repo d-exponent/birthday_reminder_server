@@ -1,7 +1,9 @@
 const User = require('../models/user')
-const AppError = require('../utils/appError')
+const AppError = require('../utils/app-error')
 const Birthday = require('../models/birthday')
-const catchAsync = require('../utils/catchAsync')
+const catchAsync = require('../utils/catch-async')
+const queryBuilder = require('../utils/query-builder')
+
 const { sendResponse, removeFalsyIsLoggedInIsActive } = require('../utils/contollers')
 const {
   RESPONSE_TYPE,
@@ -48,9 +50,15 @@ exports.addBirthday = catchAsync(async (req, res) => {
 })
 
 exports.getMyBirthdays = catchAsync(async (req, res, next) => {
-  const birthdays = await Birthday.find({ owner: req.currentUser['_id'] })
-    .select('-owner')
-    .exec()
+  const query = new queryBuilder(
+    Birthday.find({ owner: req.currentUser['_id'] }).select('-owner'),
+    req.query
+  )
+    .fields()
+    .page()
+    .sort()
+
+  const birthdays = await query.mongooseQuery.exec()
 
   if (!birthdays.length) {
     error_msg = ` There is no birthday associated with ${req.currentUser.name}`

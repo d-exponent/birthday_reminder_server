@@ -1,48 +1,40 @@
 const mongoose = require('mongoose')
 
-const AppError = require('../utils/appError')
+const AppError = require('../utils/app-error')
 const { REGEX, HTTP_STATUS_CODES } = require('../settings/constants')
 
 let error_msg
-exports.setMongooseFindParams = (req, _, next) => {
-  const query = {}
+exports.setCustomQueryFromParams = (req, _, next) => {
   const { params } = req
+  req.customQuery = {}
 
-  let identifier
-  let accessCode
-
-  if (params.identifier) {
-    identifier = params.identifier
+  if (params['user_email_phone_id']) {
+    paramsValue = params['user_email_phone_id']
 
     switch (true) {
-      case REGEX.email.test(identifier):
-        query.email = identifier.toLowerCase()
+      case REGEX.email.test(paramsValue):
+        req.customQuery.email = paramsValue.toLowerCase()
         break
-      case REGEX.phone.test(identifier):
-        query.phone = identifier
+      case REGEX.phone.test(paramsValue):
+        req.customQuery.phone = paramsValue
         break
-      case REGEX.mondoDbObjectId.test(identifier):
-        query['_id'] = new mongoose.Types.ObjectId(identifier)
+      case REGEX.mondoDbObjectId.test(paramsValue):
+        req.customQuery['_id'] = new mongoose.Types.ObjectId(paramsValue)
         break
       default:
-        error_msg = `The url parameter ${identifier} on ${req.originalUrl} did not match any expected expression`
+        error_msg = `The url parameter ${paramsValue} on ${req.originalUrl} did not match any expected expression`
         return next(new AppError(error_msg, HTTP_STATUS_CODES.error.badRequest))
     }
   }
 
-  if (params.accessCode) {
-    accessCode = params.accessCode
-    switch (true) {
-      case REGEX.accessCode.test(accessCode):
-        query.accessCode = accessCode
-        break
+  next()
+}
 
-      default:
-        error_msg = `The access code ${accessCode} on ${req.originalUrl} is wrongly formatted!`
-        return next(new AppError(error_msg, HTTP_STATUS_CODES.error.badRequest))
-    }
+exports.validateAccessCodeAnatomy = ({ params: { accessCode } }, _, next) => {
+  if (!REGEX.accessCode.test(accessCode)) {
+    error_msg = `The access code ${accessCode} on ${req.originalUrl} is wrongly formatted!`
+    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.badRequest))
   }
 
-  req.identifierQuery = query
   next()
 }

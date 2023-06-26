@@ -10,13 +10,24 @@ class Email {
   }
 
   transport() {
-    return nodemailer.createTransport({
-      service: 'hotmail',
+    const prodConfig = {
+      service: env.appEmailService,
       auth: {
         user: this.appEmail,
         pass: env.appEmailPass
       }
-    })
+    }
+
+    const devConfig = {
+      host: env.devEmailHost,
+      port: env.devEmailPort,
+      auth: {
+        user: env.devEmailUser,
+        pass: env.devEmailPassword
+      }
+    }
+
+    return nodemailer.createTransport(env.isProduction ? prodConfig : devConfig)
   }
 
   async send(params) {

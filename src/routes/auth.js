@@ -9,13 +9,18 @@ router.get(
   authController.logout
 )
 
+router.get('/tokens', authController.getTokens)
+
 router.get(
-  '/:identifier',
-  middleware.setMongooseFindParams,
+  '/:user_email_phone_id',
+  middleware.setCustomQueryFromParams,
   authController.requestAccessCode
 )
 
-router.get('/login/:accessCode', middleware.setMongooseFindParams, authController.login)
-router.get('/tokens', authController.getTokens)
+router.get(
+  '/login/:accessCode',
+  middleware.validateAccessCodeAnatomy,
+  authController.login
+)
 
 module.exports = router

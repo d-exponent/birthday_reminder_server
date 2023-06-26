@@ -1,6 +1,7 @@
 const User = require('../models/user')
-const AppError = require('../utils/appError')
-const catchAsync = require('../utils/catchAsync')
+const AppError = require('../utils/app-error')
+const catchAsync = require('../utils/catch-async')
+const queryBuilder = require('../utils/query-builder')
 const { sendResponse, removeFalsyIsLoggedInIsActive } = require('../utils/contollers')
 const {
   HTTP_STATUS_CODES,
@@ -37,35 +38,34 @@ exports.createUser = catchAsync(async (req, res) => {
   })
 })
 
-exports.getUsers = catchAsync(async (_, res, next) => {
-  const user = await User.find().exec()
-  if (!user) return next(NOT_FOUND_ERR)
-  sendResponse(RESPONSE_TYPE.success, res, { data: await User.find() })
+exports.getUsers = catchAsync(async (req, res, next) => {
+  const query = new queryBuilder(User.find(), req.query).fields().page().sort()
+
+  const users = await query.mongooseQuery.exec()
+  if (!users) return next(NOT_FOUND_ERR)
+
+  sendResponse(RESPONSE_TYPE.success, res, { results: users.length, data: users })
 })
 
-exports.getUser = catchAsync(async ({ identifierQuery }, res, next) => {
-  const user = await User.findOne(identifierQuery).exec()
+exports.getUser = catchAsync(async ({ customQuery }, res, next) => {
+  const user = await User.findOne(customQuery).exec()
   if (!user) return next(NOT_FOUND_ERR)
 
   sendResponse(RESPONSE_TYPE.success, res, { data: removeFalsyIsLoggedInIsActive(user) })
 })
 
-exports.updateUser = catchAsync(async (req, res, next) => {
-  const user = await User.findOneAndUpdate(
-    req.identifierQuery,
-    req.body,
-    FIND_UPDATE_OPTIONS
-  ).exec()
+exports.updateUser = catchAsync(async ({ customQuery, body }, res, next) => {
+  const user = await User.findOneAndUpdate(customQuery, body, FIND_UPDATE_OPTIONS).exec()
 
   if (!user) return next(NOT_FOUND_ERR)
   sendResponse(RESPONSE_TYPE.success, res, { data: removeFalsyIsLoggedInIsActive(user) })
 })
 
-exports.deleteUser = catchAsync(async ({ identifierQuery }, res, next) => {
-  const user = await User.findOne(identifierQuery)
+exports.deleteUser = catchAsync(async ({ customQuery }, res, next) => {
+  const user = await User.findOne(customQuery).exec()
   if (!user) return next(NOT_FOUND_ERR)
 
-  await User.findOneAndDelete(identifierQuery)
+  await User.findOneAndDelete(customQuery)
   sendResponse(RESPONSE_TYPE.success, res, {
     status: HTTP_STATUS_CODES.success.noContent
   })
