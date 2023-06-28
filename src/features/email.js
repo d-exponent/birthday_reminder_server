@@ -32,7 +32,7 @@ class Email {
 
   async send(params) {
     await this.transport().sendMail({
-      from: 'Eclipse Birthday Reminder',
+      from: this.appEmail,
       to: this.userEmail,
       text: params.text,
       subject: params.subject

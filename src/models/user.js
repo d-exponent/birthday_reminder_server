@@ -27,7 +27,7 @@ const userSchema = new Schema(
     accessCodeExpires: { type: Date, select: false },
     refreshToken: { type: String, select: false },
     isLoggedIn: { type: Boolean, default: false },
-    isActive: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: true },
     updatedAt: { type: Date, select: false },
     created_at: { type: Date, default: Date.now() }
   },

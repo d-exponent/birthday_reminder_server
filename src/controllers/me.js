@@ -50,14 +50,8 @@ exports.addBirthday = catchAsync(async (req, res) => {
 })
 
 exports.getMyBirthdays = catchAsync(async (req, res, next) => {
-  const query = new queryBuilder(
-    Birthday.find({ owner: req.currentUser['_id'] }).select('-owner'),
-    req.query
-  )
-    .fields()
-    .page()
-    .sort()
-
+  const mongooseQuery = Birthday.find({ owner: req.currentUser['_id'] }).select('-owner')
+  const query = new queryBuilder(mongooseQuery, req.query).fields().page().sort()
   const birthdays = await query.mongooseQuery.exec()
 
   if (!birthdays.length) {
@@ -65,5 +59,5 @@ exports.getMyBirthdays = catchAsync(async (req, res, next) => {
     return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
   }
 
-  sendResponse(RESPONSE_TYPE.success, res, { data: birthdays })
+  sendResponse(RESPONSE_TYPE.success, res, { results: birthdays.length, data: birthdays })
 })

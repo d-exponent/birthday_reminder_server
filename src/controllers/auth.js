@@ -29,7 +29,9 @@ const UNAUTHORIZED_STATUS = HTTP_STATUS_CODES.error.unauthorized
 const NOT_FOUND_STATUS = HTTP_STATUS_CODES.error.notFound
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
+
   const user = await User.findOne(req.customQuery).select(baseSelect('isActive')).exec()
+  
 
   error_msg = 'The user does not exist'
   if (!user || !user.isActive) return next(new AppError(error_msg, NOT_FOUND_STATUS))

@@ -14,12 +14,15 @@ const NOT_FOUND_ERR = new AppError('Not found', HTTP_STATUS_CODES.error.notFound
 exports.createUser = catchAsync(async (req, res) => {
   const userData = {
     ...req.body,
+
+    // Allow the model defualts or nothing
     accessCode: undefined,
     accessCodeExpires: undefined,
     refreshToken: undefined,
     isLoggedIn: undefined,
     isActive: undefined,
-    // Allow admin create users with roles
+
+    // Allow only admin create assign roles to users
     role:
       req.currentUser && req.currentUser.role === 'admin' && req.body.role
         ? req.body.role
@@ -40,7 +43,6 @@ exports.createUser = catchAsync(async (req, res) => {
 
 exports.getUsers = catchAsync(async (req, res, next) => {
   const query = new queryBuilder(User.find(), req.query).fields().page().sort()
-
   const users = await query.mongooseQuery.exec()
   if (!users) return next(NOT_FOUND_ERR)
 
@@ -55,14 +57,14 @@ exports.getUser = catchAsync(async ({ customQuery }, res, next) => {
 })
 
 exports.updateUser = catchAsync(async ({ customQuery, body }, res, next) => {
-  const user = await User.findOneAndUpdate(customQuery, body, FIND_UPDATE_OPTIONS).exec()
-
+  const user = await User.findOneAndUpdate(customQuery, body, FIND_UPDATE_OPTIONS)
   if (!user) return next(NOT_FOUND_ERR)
+
   sendResponse(RESPONSE_TYPE.success, res, { data: removeFalsyIsLoggedInIsActive(user) })
 })
 
 exports.deleteUser = catchAsync(async ({ customQuery }, res, next) => {
-  const user = await User.findOne(customQuery).exec()
+  const user = await User.findOne(customQuery)
   if (!user) return next(NOT_FOUND_ERR)
 
   await User.findOneAndDelete(customQuery)

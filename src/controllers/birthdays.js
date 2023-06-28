@@ -11,21 +11,17 @@ const {
 
 let error_msg
 
-exports.checkUserOwnsBirthday = catchAsync(async (req, _, next) => {
-  // CRUD on birthdays can only be done by the user who created it
-  const birthday = await BirthDay.findById(req.params.id).exec()
+exports.checkUserOwnsBirthday = catchAsync(async ({ method, params }, _, next) => {
+  // CRUD on a birthday can only be done by the user who created it
+  const birthday = await BirthDay.findById(params.id).exec()
 
   if (!birthday) {
     error_msg = "The requested birthday doesn't exists."
     return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
   }
 
-  const stringify = JSON.stringify
-  const method = req.method
-
-  if (stringify(birthday.owner) !== stringify(req.currentUser['_id'])) {
+  if (JSON.stringify(birthday.owner) !== JSON.stringify(req.currentUser['_id'])) {
     const crud = method === 'PATCH' ? 'update' : method === 'DELETE' ? 'delete' : 'read'
-
     error_msg = `User can only ${crud} the birthday(s) that the user created`
     return next(new AppError(error_msg, HTTP_STATUS_CODES.error.forbidden))
   }
@@ -41,12 +37,8 @@ exports.addBirthday = catchAsync(async (req, res) => {
 })
 
 exports.getBirthdays = catchAsync(async (req, res, next) => {
-  const query = new queryBuilder(BirthDay.find(), req.query)
-    .filter()
-    .fields()
-    .page()
-    .sort()
-
+  const mongooseQuery = BirthDay.find().populate({ path: 'owner', select: 'name email' })
+  const query = new queryBuilder(mongooseQuery, req.query).filter().fields().page().sort()
   const birthdays = await query.mongooseQuery.exec()
 
   if (!birthdays.length) {
@@ -71,13 +63,11 @@ exports.getBirthdaysForOwner = catchAsync(async (req, res, next) => {
     return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
   }
 
-  sendResponse(RESPONSE_TYPE.success, res, {
-    data: birthdays
-  })
+  sendResponse(RESPONSE_TYPE.success, res, { data: birthdays })
 })
 
 exports.getBirthday = catchAsync(async ({ params: { id } }, res, next) => {
-  const birthday = await BirthDay.findById(id).exec()
+  const birthday = await BirthDay.findById(id).populate('owner').exec()
 
   if (!birthday) {
     error_msg = "The birthday doesn't exist"
@@ -89,7 +79,7 @@ exports.getBirthday = catchAsync(async ({ params: { id } }, res, next) => {
 
 exports.updateBirthday = catchAsync(async ({ body, params: { id } }, res) => {
   sendResponse(RESPONSE_TYPE.success, res, {
-    data: await BirthDay.findByIdAndUpdate(id, body, FIND_UPDATE_OPTIONS).exec()
+    data: await BirthDay.findByIdAndUpdate(id, body, FIND_UPDATE_OPTIONS)
   })
 })
 
