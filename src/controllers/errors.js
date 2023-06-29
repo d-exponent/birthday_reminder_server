@@ -4,6 +4,7 @@ const { sendResponse } = require('../utils/contollers')
 const { HTTP_STATUS_CODES } = require('../settings/constants')
 
 const sendProductionError = (res, err) => {
+  console.log(err)
   err.stack = undefined
   err.name = undefined
   let resError = err

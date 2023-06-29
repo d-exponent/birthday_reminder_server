@@ -3,8 +3,8 @@ const AppError = require('../utils/app-error')
 const Birthday = require('../models/birthday')
 const catchAsync = require('../utils/catch-async')
 const queryBuilder = require('../utils/query-builder')
+const { sendResponse, includeOnly } = require('../utils/contollers')
 
-const { sendResponse, removeFalsyIsLoggedInIsActive } = require('../utils/contollers')
 const {
   RESPONSE_TYPE,
   FIND_UPDATE_OPTIONS,
@@ -12,9 +12,9 @@ const {
 } = require('../settings/constants')
 
 let error_msg
-exports.getMe = catchAsync(async (req, res) => {
+exports.getMe = catchAsync(async ({ currentUser }, res) => {
   sendResponse(RESPONSE_TYPE.success, res, {
-    data: { ...removeFalsyIsLoggedInIsActive(req.currentUser), role: undefined }
+    data: includeOnly(currentUser, 'name', 'phone', 'email', 'id')
   })
 })
 
@@ -35,7 +35,7 @@ exports.updateMe = catchAsync(async (req, res) => {
     FIND_UPDATE_OPTIONS
   )
   sendResponse(RESPONSE_TYPE.success, res, {
-    data: { ...removeFalsyIsLoggedInIsActive(user), role: undefined }
+    data: includeOnly(user, 'name', 'phone', 'email', 'id')
   })
 })
 

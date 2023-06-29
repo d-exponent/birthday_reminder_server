@@ -6,17 +6,20 @@ const User = require('../models/user')
 const Email = require('../features/email')
 const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
+
 const {
   HTTP_STATUS_CODES,
   RESPONSE_TYPE,
   REGEX,
   USER_ROLES
 } = require('../settings/constants')
+
 const {
   sendResponse,
   baseSelect,
   removeFalsyIsLoggedInIsActive
 } = require('../utils/contollers')
+
 const {
   generateAccessCode,
   getTimeIn,
@@ -29,17 +32,14 @@ const UNAUTHORIZED_STATUS = HTTP_STATUS_CODES.error.unauthorized
 const NOT_FOUND_STATUS = HTTP_STATUS_CODES.error.notFound
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-
   const user = await User.findOne(req.customQuery).select(baseSelect('isActive')).exec()
-  
-
   error_msg = 'The user does not exist'
   if (!user || !user.isActive) return next(new AppError(error_msg, NOT_FOUND_STATUS))
 
   user.accessCode = generateAccessCode()
   user.accessCodeExpires = getTimeIn((minutes = 10))
-  await user.save()
 
+  await user.save()
   await new Email(user.name, user.email).sendAccessCode(user.accessCode)
 
   sendResponse(RESPONSE_TYPE.success, res, {
@@ -150,6 +150,7 @@ exports.protect = catchAsync(async (req, _, next) => {
   if (token === null) return next(provideCredentialsError)
 
   const decoded = await promisify(jwt.verify)(token, env.accessTokenSecret)
+  
   const user = await User.findOne({ email: decoded.email })
     .select(baseSelect('isActive', 'role', 'isLoggedIn'))
     .exec()

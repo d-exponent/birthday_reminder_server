@@ -6,10 +6,6 @@ const rateLimit = require('express-rate-limit')
 const morgan = require('morgan')
 
 const env = require('./settings/env')
-const userRouter = require('./routes/users')
-const authRouter = require('./routes/auth')
-const birthdayRouter = require('./routes/birthdays')
-const meRouter = require('./routes/me')
 const errorController = require('./controllers/errors')
 
 const rateLimiter = rateLimit({
@@ -27,12 +23,11 @@ module.exports = () => {
   app.use(rateLimiter)
   app.use(express.json())
   app.use(mongoSanitize())
-  env.nodeEnv === 'development' && app.use(morgan('dev'))
+  !env.isProduction && app.use(morgan('dev'))
 
-  app.use('/api/me', meRouter)
-  app.use('/api/auth', authRouter)
-  app.use('/api/users', userRouter)
-  app.use('/api/birthdays', birthdayRouter)
+  app.use('/api/auth', require('./routes/auth'))
+  app.use('/api/users', require('./routes/users'))
+  app.use('/api/birthdays', require('./routes/birthdays'))
 
   app.use('*', errorController.wildRoutesHandler)
   app.use(errorController.globalErrorHandler)

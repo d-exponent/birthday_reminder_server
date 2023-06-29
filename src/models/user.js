@@ -26,8 +26,8 @@ const userSchema = new Schema(
     accessCode: { type: String, select: false },
     accessCodeExpires: { type: Date, select: false },
     refreshToken: { type: String, select: false },
-    isLoggedIn: { type: Boolean, default: false },
-    isActive: { type: Boolean, default: true },
+    isLoggedIn: { type: Boolean, default: false, select: false },
+    isActive: { type: Boolean, default: true, select: false },
     updatedAt: { type: Date, select: false },
     created_at: { type: Date, default: Date.now(), select: false }
   },
@@ -38,6 +38,11 @@ userSchema.pre('save', function (next) {
   if (this.isNew) {
     this.name = namesUtils.titleCaseNames(this.name)
   }
+  next()
+})
+
+userSchema.pre('update', function (next) {
+  this.updatedAt = new Date()
   next()
 })
 

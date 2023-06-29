@@ -11,23 +11,7 @@ const {
 
 let error_msg
 
-exports.checkUserOwnsBirthday = catchAsync(async ({ method, params }, _, next) => {
-  // CRUD on a birthday can only be done by the user who created it
-  const birthday = await BirthDay.findById(params.id).exec()
 
-  if (!birthday) {
-    error_msg = "The requested birthday doesn't exists."
-    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
-  }
-
-  if (JSON.stringify(birthday.owner) !== JSON.stringify(req.currentUser['_id'])) {
-    const crud = method === 'PATCH' ? 'update' : method === 'DELETE' ? 'delete' : 'read'
-    error_msg = `User can only ${crud} the birthday(s) that the user created`
-    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.forbidden))
-  }
-
-  next()
-})
 
 exports.addBirthday = catchAsync(async (req, res) => {
   sendResponse(RESPONSE_TYPE.success, res, {

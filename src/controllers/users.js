@@ -3,71 +3,49 @@ const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
 const queryBuilder = require('../utils/query-builder')
 const Email = require('../features/email')
+
 const {
-  generateAccessCode,
-  signRefreshToken,
-  getTimeIn,
-  accessTokenCookieManager
-} = require('../utils/auth')
-const { sendResponse, removeFalsyIsLoggedInIsActive } = require('../utils/contollers')
+  sendResponse,
+  includeOnly,
+  purifyDoc,
+  baseSelect
+} = require('../utils/contollers')
+
 const {
   HTTP_STATUS_CODES,
   RESPONSE_TYPE,
-  FIND_UPDATE_OPTIONS,
-  REGEX
+  FIND_UPDATE_OPTIONS
 } = require('../settings/constants')
 
 const NOT_FOUND_ERR = new AppError('Not found', HTTP_STATUS_CODES.error.notFound)
 
-exports.createUser = catchAsync(async (req, res, next) => {
-  if (!REGEX.email.test(req.body?.email)) {
-    return next(new AppError("Provide the valid user's email address on the request body"))
+exports.createUser = catchAsync(async (req, res) => {
+  const { body, currentUser } = req
+  const user = await User.create(body)
+
+  let [data, message] = [user, `${user.name} was created successfully`]
+
+  // New User
+  if (!currentUser) {
+    await new Email(user.name, user.email).sendAccessCode(user.accessCode)
+    data = includeOnly(purifyDoc(user), 'id', 'name', 'email', 'phone')
+    message = `One time login password has been sent to ${user.email}`
   }
-
-  const isNewUser = !Boolean(req.currentUser)
-
-  const user = await User.create({
-    ...req.body,
-    isActive: undefined,
-
-    // Only set these for brand new user
-    refreshToken: isNewUser ? signRefreshToken(req.body.email.toLowerCase()) : undefined,
-    accessCode: isNewUser ? generateAccessCode() : undefined,
-    accessCodeExpires: isNewUser ? getTimeIn(10) : undefined,
-
-    // Log-in new user
-    isLoggedIn: isNewUser,
-
-    // Allow only admin create users with roles
-    role:
-      !isNewUser && req.currentUser.role === 'admin' && req.body.role
-        ? req.body.role
-        : undefined
-  })
 
   sendResponse(RESPONSE_TYPE.success, res, {
     status: HTTP_STATUS_CODES.success.created,
-    data: {
-      ...removeFalsyIsLoggedInIsActive(user),
-      refreshToken: undefined,
-      accessToken: undefined,
-      role: undefined,
-      accessCode: undefined,
-      accessCodeExpires: undefined,
-      created_at: undefined,
-      __v: undefined
-    },
-    refreshToken: user.refreshToken || undefined,
-    accessToken: isNewUser ? accessTokenCookieManager(req, res, user.email) : undefined,
-    message: `${user.name} was created successfully`
+    message,
+    data,
   })
 })
 
 exports.getUsers = catchAsync(async (req, res, next) => {
-  const query = new queryBuilder(User.find(), req.query).fields().page().sort()
+  const selected = baseSelect('role isLoggedIn isActive createdAt updatedAt')
+  const mongooseQuery = User.find().select(selected)
+  const query = new queryBuilder(mongooseQuery, req.query).fields().page().sort()
   const users = await query.mongooseQuery.exec()
-  if (!users) return next(NOT_FOUND_ERR)
 
+  if (!users) return next(NOT_FOUND_ERR)
   sendResponse(RESPONSE_TYPE.success, res, { results: users.length, data: users })
 })
 
@@ -75,14 +53,14 @@ exports.getUser = catchAsync(async ({ customQuery }, res, next) => {
   const user = await User.findOne(customQuery).exec()
   if (!user) return next(NOT_FOUND_ERR)
 
-  sendResponse(RESPONSE_TYPE.success, res, { data: removeFalsyIsLoggedInIsActive(user) })
+  sendResponse(RESPONSE_TYPE.success, res, { data: user })
 })
 
 exports.updateUser = catchAsync(async ({ customQuery, body }, res, next) => {
   const user = await User.findOneAndUpdate(customQuery, body, FIND_UPDATE_OPTIONS)
   if (!user) return next(NOT_FOUND_ERR)
 
-  sendResponse(RESPONSE_TYPE.success, res, { data: removeFalsyIsLoggedInIsActive(user) })
+  sendResponse(RESPONSE_TYPE.success, res, { data: user })
 })
 
 exports.deleteUser = catchAsync(async ({ customQuery }, res, next) => {

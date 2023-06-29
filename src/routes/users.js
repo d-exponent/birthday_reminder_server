@@ -4,8 +4,13 @@ const userController = require('../controllers/users')
 const authController = require('../controllers/auth')
 const middleware = require('../controllers/middlewares')
 
+router.use('/me', require('./me'))
+
 router.use(authController.protect, authController.permit('admin'))
-router.route('/').get(userController.getUsers).post(userController.createUser)
+router
+  .route('/')
+  .get(userController.getUsers)
+  .post(middleware.setRequestBody, userController.createUser)
 
 router
   .route('/:user_email_phone_id')
