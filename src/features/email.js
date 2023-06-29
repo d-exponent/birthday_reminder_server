@@ -45,7 +45,7 @@ class Email {
       text: `
       Hi ${this.userName}!
       
-      Your authorization code is
+      Your login access code is
       ${accessCode}
 
       it expires in 10 minutes.

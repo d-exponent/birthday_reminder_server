@@ -15,7 +15,7 @@ const sendProductionError = (res, err) => {
     }
   }
 
-  sendResponse('error', res, resError)
+  sendResponse('error', res, { ...resError, isOperational: undefined })
 }
 
 exports.wildRoutesHandler = ({ method, originalUrl }, _, next) => {

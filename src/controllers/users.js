@@ -2,41 +2,63 @@ const User = require('../models/user')
 const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
 const queryBuilder = require('../utils/query-builder')
+const Email = require('../features/email')
+const {
+  generateAccessCode,
+  signRefreshToken,
+  getTimeIn,
+  accessTokenCookieManager
+} = require('../utils/auth')
 const { sendResponse, removeFalsyIsLoggedInIsActive } = require('../utils/contollers')
 const {
   HTTP_STATUS_CODES,
   RESPONSE_TYPE,
-  FIND_UPDATE_OPTIONS
+  FIND_UPDATE_OPTIONS,
+  REGEX
 } = require('../settings/constants')
 
 const NOT_FOUND_ERR = new AppError('Not found', HTTP_STATUS_CODES.error.notFound)
 
-exports.createUser = catchAsync(async (req, res) => {
-  const userData = {
-    ...req.body,
-
-    // Allow the model defualts or nothing
-    accessCode: undefined,
-    accessCodeExpires: undefined,
-    refreshToken: undefined,
-    isLoggedIn: undefined,
-    isActive: undefined,
-
-    // Allow only admin create assign roles to users
-    role:
-      req.currentUser && req.currentUser.role === 'admin' && req.body.role
-        ? req.body.role
-        : undefined
+exports.createUser = catchAsync(async (req, res, next) => {
+  if (!REGEX.email.test(req.body?.email)) {
+    return next(new AppError("Provide the valid user's email address on the request body"))
   }
 
-  const user = await User.create(userData)
+  const isNewUser = !Boolean(req.currentUser)
+
+  const user = await User.create({
+    ...req.body,
+    isActive: undefined,
+
+    // Only set these for brand new user
+    refreshToken: isNewUser ? signRefreshToken(req.body.email.toLowerCase()) : undefined,
+    accessCode: isNewUser ? generateAccessCode() : undefined,
+    accessCodeExpires: isNewUser ? getTimeIn(10) : undefined,
+
+    // Log-in new user
+    isLoggedIn: isNewUser,
+
+    // Allow only admin create users with roles
+    role:
+      !isNewUser && req.currentUser.role === 'admin' && req.body.role
+        ? req.body.role
+        : undefined
+  })
 
   sendResponse(RESPONSE_TYPE.success, res, {
+    status: HTTP_STATUS_CODES.success.created,
     data: {
       ...removeFalsyIsLoggedInIsActive(user),
+      refreshToken: undefined,
+      accessToken: undefined,
+      role: undefined,
+      accessCode: undefined,
+      accessCodeExpires: undefined,
+      created_at: undefined,
       __v: undefined
     },
-    status: HTTP_STATUS_CODES.success.created,
+    refreshToken: user.refreshToken || undefined,
+    accessToken: isNewUser ? accessTokenCookieManager(req, res, user.email) : undefined,
     message: `${user.name} was created successfully`
   })
 })

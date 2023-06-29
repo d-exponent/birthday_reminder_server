@@ -29,7 +29,7 @@ const userSchema = new Schema(
     isLoggedIn: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     updatedAt: { type: Date, select: false },
-    created_at: { type: Date, default: Date.now() }
+    created_at: { type: Date, default: Date.now(), select: false }
   },
   SCHEMA_OPTIONS
 )
