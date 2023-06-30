@@ -29,6 +29,6 @@ exports.purifyDoc = (doc) => JSON.parse(JSON.stringify(doc))
 
 exports.includeOnly = (doc, ...args) => {
   const filtered = {}
-  args.forEach((arg) => (filtered[arg] = doc[arg]))
+  args.forEach((arg) => (args ? filtered[arg] = doc[arg]: ''))
   return filtered
 }

@@ -26,6 +26,11 @@ exports.FIND_UPDATE_OPTIONS = {
   runValidators: true
 }
 
+exports.TOKENS = {
+  refresh: 'refresh',
+  access: 'access'
+}
+
 exports.SCHEMA_OPTIONS = { toJSON: { virtuals: true } }
 
 exports.USER_ROLES = ['user', 'admin']

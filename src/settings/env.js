@@ -30,6 +30,6 @@ module.exports = {
   cookieSecret: env.COOKIE_SECRET,
   accessTokenSecret: env.ACCESS_TOKEN_SECRET,
   refreshTokenSecret: env.REFRESH_TOKEN_SECRET,
-  refreshTokenExpires: env.REFRESH_TOKEN_EXPIRES,
+  refreshTokenExpires: Number(env.REFRESH_TOKEN_EXPIRES),
   accessTokenExpires: Number(env.ACCESS_TOKEN_EXPIRES)
 }

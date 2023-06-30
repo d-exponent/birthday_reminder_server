@@ -4,11 +4,10 @@ const Birthday = require('../models/birthday')
 const catchAsync = require('../utils/catch-async')
 const queryBuilder = require('../utils/query-builder')
 const { sendResponse, includeOnly } = require('../utils/contollers')
-
 const {
+  HTTP_STATUS_CODES,
   RESPONSE_TYPE,
-  FIND_UPDATE_OPTIONS,
-  HTTP_STATUS_CODES
+  FIND_UPDATE_OPTIONS
 } = require('../settings/constants')
 
 let error_msg
@@ -61,3 +60,36 @@ exports.getMyBirthdays = catchAsync(async (req, res, next) => {
 
   sendResponse(RESPONSE_TYPE.success, res, { results: birthdays.length, data: birthdays })
 })
+
+//              -----   HELPER MIDDLEWARES ----     //
+
+exports.checkUserOwnsBirthday = catchAsync(async ({ method, params }, _, next) => {
+  // CRUD on a birthday can only be done by the user who created it
+  const birthday = await Birthday.findById(params.id).exec()
+
+  if (!birthday) {
+    error_msg = "The requested birthday doesn't exists."
+    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
+  }
+
+  if (JSON.stringify(birthday.owner) !== JSON.stringify(req.currentUser['_id'])) {
+    const crud = method === 'PATCH' ? 'update' : method === 'DELETE' ? 'delete' : 'read'
+    error_msg = `User can only ${crud} the birthday(s) that the user created`
+    return next(new AppError(error_msg, HTTP_STATUS_CODES.error.forbidden))
+  }
+
+  next()
+})
+
+exports.restrictToUpdate = ({ body }, _, next) => {
+  const allowed = ['name', 'email', 'phone']
+
+  Object.keys(body).forEach((key) => {
+    if (!allowed.includes(key)) {
+      error_msg = `You are not allowed to update ${key}`
+      return next(new AppError(error_msg, HTTP_STATUS_CODES.error.forbidden))
+    }
+  })
+
+  next()
+}
