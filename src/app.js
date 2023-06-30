@@ -7,23 +7,31 @@ const morgan = require('morgan')
 
 const env = require('./settings/env')
 const errorController = require('./controllers/errors')
+const isProduction = env.isProduction
 
-const rateLimiter = rateLimit({
-  windowMs: 20 * 60 * 1000,
-  max: 150,
+// MIDDLEWARE CONFIGS
+const corsConfig = {
+  origin: env.allowedOrigin,
+  methods: ['POST', 'GET', 'PATCH', 'DELETE'],
+  credentials: true
+}
+
+const rateLimitConfig = {
+  windowMs: 1800000, //30 minutes
+  max: isProduction ? 100 : 1000,
   standardHeaders: true,
   legacyHeaders: false
-})
+}
 
 module.exports = () => {
   const app = express()
 
-  app.use(cors())
-  app.use(cookieParser(env.cookieSecret))
-  app.use(rateLimiter)
+  app.use(cors(corsConfig))
   app.use(express.json())
+  app.use(cookieParser(env.cookieSecret))
+  app.use(rateLimit(rateLimitConfig))
   app.use(mongoSanitize())
-  !env.isProduction && app.use(morgan('dev'))
+  !isProduction && app.use(morgan('dev'))
 
   app.use('/api/auth', require('./routes/auth'))
   app.use('/api/users', require('./routes/users'))

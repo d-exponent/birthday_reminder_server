@@ -2,32 +2,37 @@ const env = require('../settings/env')
 const jwt = require('jsonwebtoken')
 const { TOKENS } = require('../settings/constants')
 
-exports.generateRandomNumber = (limit = 9) => Math.round(Math.random() * limit)
+exports.generateRandomNumber = () => Math.round(Math.random() * 9)
 
-exports.generateAccessCode = () => {
-  return [...Array(4).keys()].map(() => this.generateRandomNumber()).join('')
+exports.generateAccessCode = (length = 4) => {
+  return [...Array(length)].map(this.generateRandomNumber).join('')
 }
 
 exports.getTimeIn = (minutes = 0) => new Date(Date.now() + minutes * 60000)
 
-exports.signToken = (email, type = TOKENS.refresh) => {
-  if (!Object.values(TOKENS).includes(type))
-    throw new Error('type must be either /refresh/ or /access/')
+exports.signToken = (email, type = TOKENS.access) => {
+  const allowedTokenTypes = Object.values(TOKENS)
 
-  const isRefresh = type === TOKENS.refresh
-  const secret = isRefresh ? env.refreshTokenSecret : env.accessTokenSecret
-  const expiresIn = isRefresh ? env.refreshTokenExpires : env.accessTokenExpires
+  if (!allowedTokenTypes.includes(type)) {
+    const types = allowedTokenTypes.map((t) => `/${t}/`).join(', ')
+    throw new Error(`type must be one off ${types}`)
+  }
+
+  const isAccessToken = type === TOKENS.access
+  const secret = isAccessToken ? env.accessTokenSecret : env.refreshTokenSecret
+  const expiresIn = isAccessToken ? env.accessTokenExpires : env.refreshTokenExpires
 
   return jwt.sign({ email }, secret, { expiresIn })
 }
 
-exports.refreshTokenCookieManager = (req, res, email, logout = false) => {
+exports.refreshTokenCookieManager = (res, email, logout = false) => {
   const refreshToken = logout ? 'logout' : this.signToken(email, TOKENS.refresh)
+  const isProduction = env.isProduction
 
   res.cookie(env.cookieName, refreshToken, {
-    httpOnly: true,
-    signed: true,
-    secure: req.secure,
+    httpOnly: isProduction,
+    signed: isProduction,
+    secure: isProduction,
     maxAge: logout ? 1000 : env.refreshTokenExpires * 1000
   })
 

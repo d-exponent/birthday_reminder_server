@@ -12,7 +12,7 @@ mongoose
     console.log('👍 Connected to MongoDb successfully')
 
     // Application server
-    env.isProduction ? productionServer() : developmentServer() 
+    env.isProduction ? productionServer() : developmentServer()
 
     // Scheduled Job
     // const cronExpression = env.isProduction ? '0 0 */6 * * *' : '0 */1 * * * *'

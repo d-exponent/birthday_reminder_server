@@ -11,8 +11,6 @@ const {
 
 let error_msg
 
-
-
 exports.addBirthday = catchAsync(async (req, res) => {
   sendResponse(RESPONSE_TYPE.success, res, {
     status: 201,

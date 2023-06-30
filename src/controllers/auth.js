@@ -11,11 +11,14 @@ const {
   HTTP_STATUS_CODES,
   RESPONSE_TYPE,
   REGEX,
-  TOKENS,
   USER_ROLES
 } = require('../settings/constants')
 
-const { sendResponse, baseSelect, includeOnly } = require('../utils/contollers')
+const {
+  sendResponse,
+  baseSelect,
+  defaultSelectedUserValues
+} = require('../utils/contollers')
 
 const {
   generateAccessCode,
@@ -50,9 +53,8 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
 })
 
 exports.login = catchAsync(async (req, res, next) => {
-  const [accessCode, selected] = [req.params.accessCode, baseSelect('accessCodeExpires')]
-
-  const user = await User.findOne({ accessCode }).select(selected).exec()
+  const selected = baseSelect('accessCodeExpires', 'role')
+  const user = await User.findOne(req.customQuery).select(selected)
 
   if (!user || Date.now() > user.accessCodeExpires.getTime()) {
     return next(new AppError('Invalid access code', UNAUTHORIZED))
@@ -62,24 +64,14 @@ exports.login = catchAsync(async (req, res, next) => {
   user.accessCodeExpires = undefined
   user.isLoggedIn = true
   user.isActive = true
-  user.refreshToken = refreshTokenCookieManager(req, res, user.email)
+  user.refreshToken = refreshTokenCookieManager(res, user.email)
   await user.save()
 
   sendResponse(RESPONSE_TYPE.success, res, {
-    accessToken: signToken(user.email, TOKENS.access),
-    data: includeOnly(user, 'name', 'email', 'id', 'phone')
+    accessToken: signToken(user.email),
+    data: defaultSelectedUserValues(user)
   })
 })
-
-exports.setUserForlogout = async (req, res, next) => {
-  req.currentUser.isLoggedIn = false
-  req.currentUser.refreshToken = undefined
-  req.currentUser.accessCode = undefined
-  req.currentUser.accessCodeExpires = undefined
-
-  refreshTokenCookieManager(req, res, '', true)
-  next()
-}
 
 exports.logout = catchAsync(async (req, res) => {
   await req.currentUser.save()
@@ -90,7 +82,9 @@ exports.logout = catchAsync(async (req, res) => {
 })
 
 exports.getAccessToken = catchAsync(async (req, res, next) => {
-  const refreshToken = req.signedCookies[env.cookieName]
+  const cookieLocation = env.isProduction ? 'signedCookies' : 'cookies'
+  const refreshToken = req[cookieLocation][env.cookieName]
+
   if (!refreshToken || !REGEX.jwtToken.test(refreshToken)) {
     return next(INVALID_TOKEN_ERROR)
   }
@@ -98,20 +92,14 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
   const user = await User.findOne({ refreshToken }).select(baseSelect('refreshToken'))
   if (!user || user.refreshToken !== refreshToken) return next(INVALID_TOKEN_ERROR)
 
-  try {
-    await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
-  } catch (err) {
-    user.refreshToken = undefined
-    user.save().catch((e) => console.error('🛑GET TOKENS CONTROLLER', e.message))
-    return next(err)
-  }
+  await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
 
   // REFRESH TOKEN ROTATION
-  user.refreshToken = refreshTokenCookieManager(req, res, user.email)
+  user.refreshToken = refreshTokenCookieManager(res, user.email)
   await user.save()
 
   sendResponse(RESPONSE_TYPE.success, res, {
-    accessToken: signToken(user.email, TOKENS.access),
+    accessToken: signToken(user.email),
     status: HTTP_STATUS_CODES.success.created
   })
 })
@@ -129,10 +117,11 @@ exports.protect = catchAsync(async (req, _, next) => {
       : null
 
   if (token === null) return next(INVALID_TOKEN_ERROR)
+
   const decoded = await promisify(jwt.verify)(token, env.accessTokenSecret)
 
   selected = baseSelect('isActive', 'role', 'isLoggedIn')
-  const user = await User.findOne({ email: decoded.email }).select(selected).exec()
+  const user = await User.findOne({ email: decoded.email }).select(selected)
 
   if (!user || !user.isActive) return next(INVALID_TOKEN_ERROR)
   if (!user.isLoggedIn) return next(LOGIN_ERROR)
@@ -140,6 +129,16 @@ exports.protect = catchAsync(async (req, _, next) => {
   req.currentUser = user
   next()
 })
+
+exports.setUserForlogout = async (req, res, next) => {
+  req.currentUser.isLoggedIn = false
+  req.currentUser.refreshToken = undefined
+  req.currentUser.accessCode = undefined
+  req.currentUser.accessCodeExpires = undefined
+
+  refreshTokenCookieManager(res, '', true)
+  next()
+}
 
 exports.permit = (...args) => {
   // Ensure at least one role is passed
@@ -162,10 +161,16 @@ exports.permit = (...args) => {
   }
 }
 
-exports.validateAccessCodeAnatomy = ({ params: { accessCode } }, _, next) => {
-  if (!REGEX.accessCode.test(accessCode)) {
-    error_msg = `The access code ${accessCode} on ${req.originalUrl} is wrongly formatted!`
+// -------------  HELPER MIDDLEWARE
+
+exports.validateAccessCodeSetCustomQuery = (req, _, next) => {
+  const { customQuery, params, originalUrl } = req
+
+  if (!REGEX.accessCode.test(params.accessCode)) {
+    error_msg = `The access code ${params.accessCode} on ${originalUrl} is invalid`
     return next(new AppError(error_msg, HTTP_STATUS_CODES.error.badRequest))
   }
+
+  customQuery.accessCode = params.accessCode
   next()
 }

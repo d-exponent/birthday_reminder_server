@@ -9,7 +9,7 @@ router.get(
   authController.logout
 )
 
-router.get('/access-token', authController.getAccessToken)
+router.get('/refresh', authController.getAccessToken)
 
 router.get(
   '/:user_email_phone_id',
@@ -18,8 +18,9 @@ router.get(
 )
 
 router.get(
-  '/login/:accessCode',
-  authController.validateAccessCodeAnatomy,
+  '/login/:user_email_phone_id/:accessCode',
+  userController.setCustomQueryFromParams,
+  authController.validateAccessCodeSetCustomQuery,
   authController.login
 )
 

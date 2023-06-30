@@ -3,7 +3,7 @@ const AppError = require('../utils/app-error')
 const Birthday = require('../models/birthday')
 const catchAsync = require('../utils/catch-async')
 const queryBuilder = require('../utils/query-builder')
-const { sendResponse, includeOnly } = require('../utils/contollers')
+const { sendResponse, defaultSelectedUserValues } = require('../utils/contollers')
 const {
   HTTP_STATUS_CODES,
   RESPONSE_TYPE,
@@ -13,7 +13,7 @@ const {
 let error_msg
 exports.getMe = catchAsync(async ({ currentUser }, res) => {
   sendResponse(RESPONSE_TYPE.success, res, {
-    data: includeOnly(currentUser, 'name', 'phone', 'email', 'id')
+    data: defaultSelectedUserValues(currentUser)
   })
 })
 
@@ -34,7 +34,7 @@ exports.updateMe = catchAsync(async (req, res) => {
     FIND_UPDATE_OPTIONS
   )
   sendResponse(RESPONSE_TYPE.success, res, {
-    data: includeOnly(user, 'name', 'phone', 'email', 'id')
+    data: defaultSelectedUserValues(user)
   })
 })
 

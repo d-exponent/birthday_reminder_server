@@ -14,6 +14,9 @@ module.exports = {
   dbPassword: env.DB_PASSWORD,
   dbUsername: env.DB_USERNAME,
 
+  // Allowed Client Origin
+  allowedOrigin: env.ALLOWED_ORIGIN,
+
   // For Nodemailer (PROD)
   appEmail: env.APP_EMAIL,
   appEmailPass: env.EMAIL_PASSWORD,

@@ -22,7 +22,14 @@ exports.createUser = catchAsync(async (req, res) => {
   // New User
   if (!currentUser) {
     await new Email(user.name, user.email).sendAccessCode(user.accessCode)
-    data = utils.includeOnly(utils.purifyDoc(user), 'id', 'name', 'email', 'phone')
+    data = utils.includeOnly(
+      utils.purifyDoc(user),
+      'id',
+      'name',
+      'email',
+      'phone',
+      'role'
+    )
     message = `One time login password has been sent to ${user.email}`
   }
 
