@@ -49,7 +49,9 @@ exports.addBirthday = catchAsync(async (req, res) => {
 })
 
 exports.getMyBirthdays = catchAsync(async (req, res, next) => {
-  const mongooseQuery = Birthday.find({ owner: req.currentUser['_id'] }).select('-owner')
+  const mongooseQuery = Birthday.find({ owner: req.currentUser['_id'] }).select(
+    '-owner'
+  )
   const query = new queryBuilder(mongooseQuery, req.query).fields().page().sort()
   const birthdays = await query.mongooseQuery.exec()
 
@@ -58,7 +60,10 @@ exports.getMyBirthdays = catchAsync(async (req, res, next) => {
     return next(new AppError(error_msg, HTTP_STATUS_CODES.error.notFound))
   }
 
-  sendResponse(RESPONSE_TYPE.success, res, { results: birthdays.length, data: birthdays })
+  sendResponse(RESPONSE_TYPE.success, res, {
+    results: birthdays.length,
+    data: birthdays
+  })
 })
 
 //              -----   HELPER MIDDLEWARES ----     //
@@ -73,7 +78,8 @@ exports.checkUserOwnsBirthday = catchAsync(async ({ method, params }, _, next) =
   }
 
   if (JSON.stringify(birthday.owner) !== JSON.stringify(req.currentUser['_id'])) {
-    const crud = method === 'PATCH' ? 'update' : method === 'DELETE' ? 'delete' : 'read'
+    const crud =
+      method === 'PATCH' ? 'update' : method === 'DELETE' ? 'delete' : 'read'
     error_msg = `User can only ${crud} the birthday(s) that the user created`
     return next(new AppError(error_msg, HTTP_STATUS_CODES.error.forbidden))
   }
@@ -84,7 +90,7 @@ exports.checkUserOwnsBirthday = catchAsync(async ({ method, params }, _, next) =
 exports.restrictToUpdate = ({ body }, _, next) => {
   const allowed = ['name', 'email', 'phone']
 
-  Object.keys(body).forEach((key) => {
+  Object.keys(body).forEach(key => {
     if (!allowed.includes(key)) {
       error_msg = `You are not allowed to update ${key}`
       return next(new AppError(error_msg, HTTP_STATUS_CODES.error.forbidden))

@@ -35,7 +35,9 @@ const INVALID_TOKEN_ERROR = new AppError('Invalid auth credentials', UNAUTHORIZE
 const LOGIN_ERROR = new AppError('Please log in', UNAUTHORIZED)
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.customQuery).select(baseSelect('isActive')).exec()
+  const user = await User.findOne(req.customQuery)
+    .select(baseSelect('isActive'))
+    .exec()
   error_msg = 'The user does not exist'
 
   if (!user || !user.isActive)
@@ -82,14 +84,16 @@ exports.logout = catchAsync(async (req, res) => {
 })
 
 exports.getAccessToken = catchAsync(async (req, res, next) => {
-  const cookieLocation = env.isProduction ? 'signedCookies' : 'cookies'
-  const refreshToken = req[cookieLocation][env.cookieName]
+  const cookiesLoc = env.isProduction ? 'signedCookies' : 'cookies'
+  const refreshToken = req[cookiesLoc][env.cookieName]
 
   if (!refreshToken || !REGEX.jwtToken.test(refreshToken)) {
     return next(INVALID_TOKEN_ERROR)
   }
 
-  const user = await User.findOne({ refreshToken }).select(baseSelect('refreshToken'))
+  const user = await User.findOne({ refreshToken }).select(
+    baseSelect('refreshToken')
+  )
   if (!user || user.refreshToken !== refreshToken) return next(INVALID_TOKEN_ERROR)
 
   await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
@@ -105,14 +109,10 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
 })
 
 exports.protect = catchAsync(async (req, _, next) => {
-  const headerAuthorization = req.headers['authorization'] || null
-
-  if (!headerAuthorization) return next(LOGIN_ERROR)
+  const headerAuthorization = req.headers['authorization']
 
   const token =
-    headerAuthorization &&
-    REGEX.bearerJwtToken.test(headerAuthorization) &&
-    REGEX.jwtToken.test(headerAuthorization.split(' ')[1])
+    headerAuthorization && REGEX.bearerJwtToken.test(headerAuthorization)
       ? headerAuthorization.split(' ')[1]
       : null
 
@@ -145,7 +145,7 @@ exports.permit = (...args) => {
   if (!args.length) throw new Error('restrictTo requires at least one valid role')
 
   // Ensure only valid roles parameters are passed
-  args.forEach((arg) => {
+  args.forEach(arg => {
     if (!USER_ROLES.includes(arg)) {
       throw new Error(`${arg} is not a valid role`)
     }

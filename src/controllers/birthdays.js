@@ -19,8 +19,15 @@ exports.addBirthday = catchAsync(async (req, res) => {
 })
 
 exports.getBirthdays = catchAsync(async (req, res, next) => {
-  const mongooseQuery = BirthDay.find().populate({ path: 'owner', select: 'name email' })
-  const query = new queryBuilder(mongooseQuery, req.query).filter().fields().page().sort()
+  const mongooseQuery = BirthDay.find().populate({
+    path: 'owner',
+    select: 'name email'
+  })
+  const query = new queryBuilder(mongooseQuery, req.query)
+    .filter()
+    .fields()
+    .page()
+    .sort()
   const birthdays = await query.mongooseQuery.exec()
 
   if (!birthdays.length) {

@@ -14,7 +14,7 @@ exports.signToken = (email, type = TOKENS.access) => {
   const allowedTokenTypes = Object.values(TOKENS)
 
   if (!allowedTokenTypes.includes(type)) {
-    const types = allowedTokenTypes.map((t) => `/${t}/`).join(', ')
+    const types = allowedTokenTypes.map(t => `/${t}/`).join(', ')
     throw new Error(`type must be one off ${types}`)
   }
 

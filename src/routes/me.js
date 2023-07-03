@@ -13,7 +13,10 @@ router
   .patch(meController.restrictToUpdate, meController.updateMe)
   .delete(authController.setUserForlogout, meController.deleteMe)
 
-router.route('/birthdays').post(meController.addBirthday).get(meController.getMyBirthdays)
+router
+  .route('/birthdays')
+  .post(meController.addBirthday)
+  .get(meController.getMyBirthdays)
 
 router
   .route('/birthdays/:id')

@@ -88,7 +88,9 @@ exports.setRequestBody = ({ body, currentUser }, _, next) => {
   // Ensure we have a valid email on body
   if (!constants.REGEX.email.test(body.email)) {
     error_msg = "Provide the valid user's email address on the request body"
-    return next(new AppError(error_msg, constants.HTTP_STATUS_CODES.error.badRequest))
+    return next(
+      new AppError(error_msg, constants.HTTP_STATUS_CODES.error.badRequest)
+    )
   }
 
   if (currentUser) {
@@ -129,7 +131,9 @@ exports.setCustomQueryFromParams = (req, _, next) => {
         break
       default:
         error_msg = `The url parameter ${paramsValue} on ${req.originalUrl} did not match any expected expression`
-        return next(new AppError(error_msg, constants.HTTP_STATUS_CODES.error.badRequest))
+        return next(
+          new AppError(error_msg, constants.HTTP_STATUS_CODES.error.badRequest)
+        )
     }
   }
 

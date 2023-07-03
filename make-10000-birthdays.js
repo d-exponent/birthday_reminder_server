@@ -22,7 +22,8 @@ mongoose
         await Birthday.create({
           name: faker.person.fullName(),
           email: faker.internet.email(),
-          month: i % 2 === 0 ? currentDate.getMonth() + 1 : generateRandomNumber(11) + 1,
+          month:
+            i % 2 === 0 ? currentDate.getMonth() + 1 : generateRandomNumber(11) + 1,
           day: i % 2 === 0 ? currentDate.getDate() : generateRandomNumber(30) + 1,
           owner: '649bdf7d1c629ddc3f4b90cd'
         })
@@ -32,4 +33,4 @@ mongoose
     }
     console.log('👍DONE')
   })
-  .catch((e) => console.log(e))
+  .catch(e => console.log(e))

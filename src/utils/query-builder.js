@@ -25,10 +25,10 @@ class QueryBuilder {
 
   filter() {
     const toRemove = ['page', 'sort', 'limit', 'feilds']
-    toRemove.forEach((el) => delete this.urlQuery[el])
+    toRemove.forEach(el => delete this.urlQuery[el])
 
     const queryStr = JSON.stringify(this.urlQuery)
-    const query = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`)
+    const query = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`)
     this.mongooseQuery.find(JSON.parse(query))
     return this
   }

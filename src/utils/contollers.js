@@ -18,11 +18,11 @@ exports.sendResponse = (type, res, body) => {
 
 exports.baseSelect = (...args) => {
   let defaultSelected = 'name email phone'
-  args.length && args.forEach((arg) => (defaultSelected = `${defaultSelected} ${arg}`))
+  args.length && args.forEach(arg => (defaultSelected = `${defaultSelected} ${arg}`))
   return defaultSelected
 }
 
-exports.purifyDoc = (doc) => JSON.parse(JSON.stringify(doc))
+exports.purifyDoc = doc => JSON.parse(JSON.stringify(doc))
 
 exports.includeOnly = (doc, ...args) => {
   if (!args.length) {
@@ -35,10 +35,10 @@ exports.includeOnly = (doc, ...args) => {
     args = args[0].split(' ')
   }
 
-  args.forEach((arg) => (args ? (filtered[arg] = doc[arg]) : ''))
+  args.forEach(arg => (args ? (filtered[arg] = doc[arg]) : ''))
   return filtered
 }
 
-exports.defaultSelectedUserValues = (user) => {
+exports.defaultSelectedUserValues = user => {
   return this.includeOnly(user, 'name phone email id role')
 }

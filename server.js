@@ -19,4 +19,4 @@ mongoose
     // cron.schedule(cronExpression, birthdayReminderJob).start()
     console.log('👍 Birtday Reminder Job started successfully')
   })
-  .catch((e) => console.error('🛑🛑 SERVER ERROR', e))
+  .catch(e => console.error('🛑🛑 SERVER ERROR', e))

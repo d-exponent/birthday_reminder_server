@@ -36,7 +36,7 @@ module.exports = async () => {
       break
     }
 
-    birthdays.forEach((birthday) => {
+    birthdays.forEach(birthday => {
       const { owner, name, phone, email } = purifyDoc(birthday)
 
       new Email(owner.name, env.isProduction ? owner.email : env.appEmail)
@@ -45,7 +45,7 @@ module.exports = async () => {
           phone: phone || '',
           email: email || ''
         })
-        .catch((e) => {
+        .catch(e => {
           error_msg = `🛑 EMAIL ERROR: Couldn't send ${owner.email} an email of ${name}'s birthday => `
           console.error(error_msg, e.message)
         })
