@@ -1,11 +1,13 @@
-const { HTTP_STATUS_CODES } = require('../settings/constants')
+const { STATUS } = require('../settings/constants')
+
+const SELECTED_USER_FEILDS = 'name phone email id role'
 
 exports.sendResponse = (type, res, body) => {
   if (type.match(/error/i)) {
-    body.status = body.status || HTTP_STATUS_CODES.error.serverError
+    body.status = body.status || STATUS.error.serverError
     body.success = false
   } else if (type.match(/success/i)) {
-    body.status = body.status || HTTP_STATUS_CODES.success.ok
+    body.status = body.status || STATUS.success.ok
     body.success = true
   } else {
     const err = new Error('type parameter must be either error or success')
@@ -17,8 +19,9 @@ exports.sendResponse = (type, res, body) => {
 }
 
 exports.baseSelect = (...args) => {
-  let defaultSelected = 'name email phone'
-  args.length && args.forEach(arg => (defaultSelected = `${defaultSelected} ${arg}`))
+  let defaultSelected = SELECTED_USER_FEILDS
+  args.length &&
+    args.forEach(arg => (defaultSelected = `${defaultSelected} ${arg}`))
   return defaultSelected
 }
 
@@ -40,5 +43,5 @@ exports.includeOnly = (doc, ...args) => {
 }
 
 exports.defaultSelectedUserValues = user => {
-  return this.includeOnly(user, 'name phone email id role')
+  return this.includeOnly(user, SELECTED_USER_FEILDS)
 }

@@ -4,7 +4,7 @@ const titleCaseText = text =>
 exports.titleCaseNames = name => {
   const names = name.split(' ')
 
-  if (names.length === 1) return titleCaseText(names[0])
-
-  return names.map(name => titleCaseText(name)).join(' ')
+  return names.length === 1
+    ? titleCaseText(names[0])
+    : names.map(name => titleCaseText(name)).join(' ')
 }

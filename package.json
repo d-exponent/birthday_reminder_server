@@ -1,13 +1,13 @@
 {
-  "name": "birthday-rmd-server",
+  "name": "ecl_birthday_remibder",
   "version": "1.0.0",
   "description": "Express js server for react js frontend",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.js",
-    "start": "node server.js",
-    "prod": "NODE_ENV=production nodemon server.js",
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "prod": "NODE_ENV=production nodemon index.js",
     "pretty": "prettier --config .prettierrc ./**/*.js --write"
   },
   "repository": {

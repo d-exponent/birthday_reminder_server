@@ -1,5 +1,5 @@
-const express = require('express')
 const cors = require('cors')
+const express = require('express')
 const cookieParser = require('cookie-parser')
 const mongoSanitize = require('express-mongo-sanitize')
 const rateLimit = require('express-rate-limit')
@@ -11,7 +11,7 @@ const isProduction = env.isProduction
 
 // MIDDLEWARE CONFIGS
 const corsConfig = {
-  origin: env.allowedOrigin,
+  origin: env.allowedOrigins.split(','),
   methods: ['POST', 'GET', 'PATCH', 'DELETE'],
   credentials: true
 }
@@ -27,11 +27,12 @@ module.exports = () => {
   const app = express()
 
   app.use(cors(corsConfig))
-  app.use(express.json())
-  app.use(cookieParser(env.cookieSecret))
   app.use(rateLimit(rateLimitConfig))
+  app.use(express.json())
   app.use(mongoSanitize())
+  app.use(cookieParser(env.cookieSecret))
   !isProduction && app.use(morgan('dev'))
+  // app.use(morgan('dev'))
 
   app.use('/api/auth', require('./routes/auth'))
   app.use('/api/users', require('./routes/users'))

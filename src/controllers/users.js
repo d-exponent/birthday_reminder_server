@@ -6,11 +6,16 @@ const catchAsync = require('../utils/catch-async')
 const queryBuilder = require('../utils/query-builder')
 const Email = require('../features/email')
 const utils = require('../utils/contollers')
-const constants = require('../settings/constants')
 const { generateAccessCode, getTimeIn } = require('../utils/auth')
+const {
+  STATUS,
+  RESPONSE,
+  REGEX,
+  FIND_UPDATE_OPTIONS
+} = require('../settings/constants')
 
 let error_msg
-const not_found_status = constants.HTTP_STATUS_CODES.error.notFound
+const not_found_status = STATUS.error.notFound
 const NOT_FOUND_ERR = new AppError('Not found', not_found_status)
 
 exports.createUser = catchAsync(async (req, res) => {
@@ -22,33 +27,32 @@ exports.createUser = catchAsync(async (req, res) => {
   // New User
   if (!currentUser) {
     await new Email(user.name, user.email).sendAccessCode(user.accessCode)
-    data = utils.includeOnly(
-      utils.purifyDoc(user),
-      'id',
-      'name',
-      'email',
-      'phone',
-      'role'
-    )
+    data = utils.defaultSelectedUserValues(user)
     message = `One time login password has been sent to ${user.email}`
   }
 
-  utils.sendResponse(constants.RESPONSE_TYPE.success, res, {
-    status: constants.HTTP_STATUS_CODES.success.created,
+
+  utils.sendResponse(RESPONSE.success, res, {
+    status: STATUS.success.created,
     message,
     data
   })
 })
 
 exports.getUsers = catchAsync(async (req, res, next) => {
-  const selected = utils.baseSelect('role isLoggedIn isActive createdAt updatedAt')
+  const selected = utils.baseSelect(
+    'role isLoggedIn isActive createdAt updatedAt'
+  )
   const mongooseQuery = User.find().select(selected)
-  const query = new queryBuilder(mongooseQuery, req.query).fields().page().sort()
-  const users = await query.mongooseQuery.exec()
+  const query = new queryBuilder(mongooseQuery, req.query)
+    .fields()
+    .page()
+    .sort()
 
+  const users = await query.mongooseQuery.exec()
   if (!users) return next(NOT_FOUND_ERR)
 
-  utils.sendResponse(constants.RESPONSE_TYPE.success, res, {
+  utils.sendResponse(RESPONSE.success, res, {
     results: users.length,
     data: users
   })
@@ -58,18 +62,22 @@ exports.getUser = catchAsync(async ({ customQuery }, res, next) => {
   const user = await User.findOne(customQuery).exec()
   if (!user) return next(NOT_FOUND_ERR)
 
-  utils.sendResponse(constants.RESPONSE_TYPE.success, res, { data: user })
+  utils.sendResponse(RESPONSE.success, res, {
+    data: user
+  })
 })
 
 exports.updateUser = catchAsync(async ({ customQuery, body }, res, next) => {
   const user = await User.findOneAndUpdate(
     customQuery,
     body,
-    constants.FIND_UPDATE_OPTIONS
+    FIND_UPDATE_OPTIONS
   )
   if (!user) return next(NOT_FOUND_ERR)
 
-  utils.sendResponse(constants.RESPONSE_TYPE.success, res, { data: user })
+  utils.sendResponse(RESPONSE.success, res, {
+    data: user
+  })
 })
 
 exports.deleteUser = catchAsync(async ({ customQuery }, res, next) => {
@@ -77,63 +85,51 @@ exports.deleteUser = catchAsync(async ({ customQuery }, res, next) => {
   if (!user) return next(NOT_FOUND_ERR)
 
   await User.findOneAndDelete(customQuery)
-  utils.sendResponse(constants.RESPONSE_TYPE.success, res, {
-    status: constants.HTTP_STATUS_CODES.success.noContent
+  utils.sendResponse(RESPONSE.success, res, {
+    status: STATUS.success.noContent
   })
 })
 
 //              -----   HELPER MIDDLEWARES ----     //
 
 exports.setRequestBody = ({ body, currentUser }, _, next) => {
-  // Ensure we have a valid email on body
-  if (!constants.REGEX.email.test(body.email)) {
-    error_msg = "Provide the valid user's email address on the request body"
-    return next(
-      new AppError(error_msg, constants.HTTP_STATUS_CODES.error.badRequest)
-    )
-  }
-
   if (currentUser) {
+    // RESTRICTING THE POWERS OF THE ADMIN 😎
     body.refreshToken = undefined
     body.accessCode = undefined
     body.accessCodeExpires = undefined
     body.isActive = undefined
-    body.isLoggedIn = undefined
+    body.isVerified = undefined
   } else {
     // A new user
     body.accessCode = generateAccessCode()
     body.accessCodeExpires = getTimeIn(10)
     body.isActive = true
-    body.isLoggedIn = false
+    body.isVerified = false
     body.role = 'user'
   }
-
   next()
 }
 
 exports.setCustomQueryFromParams = (req, _, next) => {
-  const { params } = req
-  const regex = constants.REGEX
+  let { params } = req
+  params = params['user_email_phone_id']
   req.customQuery = {}
 
-  if (params['user_email_phone_id']) {
-    paramsValue = params['user_email_phone_id']
-
+  if (params) {
     switch (true) {
-      case regex.email.test(paramsValue):
-        req.customQuery.email = paramsValue.toLowerCase()
+      case REGEX.email.test(params):
+        req.customQuery.email = params.toLowerCase()
         break
-      case regex.phone.test(paramsValue):
-        req.customQuery.phone = paramsValue
+      case REGEX.phone.test(params):
+        req.customQuery.phone = params
         break
-      case regex.mondoDbObjectId.test(paramsValue):
-        req.customQuery['_id'] = new mongoose.Types.ObjectId(paramsValue)
+      case REGEX.mondoDbObjectId.test(params):
+        req.customQuery['_id'] = new mongoose.Types.ObjectId(params)
         break
       default:
-        error_msg = `The url parameter ${paramsValue} on ${req.originalUrl} did not match any expected expression`
-        return next(
-          new AppError(error_msg, constants.HTTP_STATUS_CODES.error.badRequest)
-        )
+        error_msg = `The url parameter ${params} on ${req.originalUrl} did not match any expected expression`
+        return next(new AppError(error_msg, STATUS.error.badRequest))
     }
   }
 

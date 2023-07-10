@@ -3,9 +3,12 @@ require('dotenv/config')
 const env = process.env
 
 module.exports = {
+  // for birthday reminder job
+  page: env.PAGE ? Number(env.page) : undefined,
+
   // App server settings
   nodeEnv: env.NODE_ENV,
-  port: env.PORT || 5000,
+  port: env.PORT || '5000',
   isProduction: env.NODE_ENV === 'production',
   devHttpProtocol: env.DEV_HTTP_PROTOCOL || 'http',
 
@@ -15,7 +18,7 @@ module.exports = {
   dbUsername: env.DB_USERNAME,
 
   // Allowed Client Origin
-  allowedOrigin: env.ALLOWED_ORIGIN,
+  allowedOrigins: env.ALLOWED_ORIGINS,
 
   // For Nodemailer (PROD)
   appEmail: env.APP_EMAIL,

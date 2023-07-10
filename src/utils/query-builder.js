@@ -1,4 +1,4 @@
-class QueryBuilder {
+module.exports = class QueryBuilder {
   constructor(mongooseQuery, urlQuery) {
     this.mongooseQuery = mongooseQuery
     this.urlQuery = urlQuery
@@ -14,12 +14,9 @@ class QueryBuilder {
   }
 
   sort() {
-    // sorting
-    const sortBy = this.urlQuery.sort
-      ? this.urlQuery.sort.split(',').join(' ')
-      : 'createdAt'
-
-    this.mongooseQuery.sort(sortBy)
+    this.mongooseQuery.sort(
+      this.urlQuery.sort ? this.urlQuery.sort.split(',').join(' ') : 'createdAt'
+    )
     return this
   }
 
@@ -34,13 +31,9 @@ class QueryBuilder {
   }
 
   fields() {
-    const selected = this.urlQuery.feilds
-      ? this.urlQuery.feilds.split(',').join(' ')
-      : '-__v'
-
-    this.mongooseQuery = this.mongooseQuery.select(selected)
+    this.mongooseQuery = this.mongooseQuery.select(
+      this.urlQuery.feilds ? this.urlQuery.feilds.split(',').join(' ') : '-__v'
+    )
     return this
   }
 }
-
-module.exports = QueryBuilder

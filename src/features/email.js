@@ -39,6 +39,22 @@ class Email {
     })
   }
 
+  async sendWelcome() {
+    await this.send({
+      subject: 'Welcome to the Eclipse Birthday Reminder Family 🤗',
+      text: `
+
+      Congratulations ${this.userName}🎉✨, your account has been verified.
+
+      We look forward to helping you keep track of the birtdays of those special to you.
+      NEVER FOR GET A BIRTHDAY AGAIN
+
+      Regards,
+      Eclipse Birthday Reminder
+      `
+    })
+  }
+
   async sendAccessCode(accessCode) {
     await this.send({
       subject: `${this.userName} your one time verification code!`,
@@ -48,7 +64,7 @@ class Email {
       Your login access code is
       ${accessCode}
 
-      it expires in 10 minutes.
+      It expires in 10 minutes.
 
       Regards,
       Eclipse Birthday Reminder
@@ -59,11 +75,13 @@ class Email {
   async sendBirthdayReminder({ name, phone, email }) {
     await this.send({
       subject: `BIRTHDAY ALERT FOR ${this.userName}  `,
+
       text: `
       It's ${name}'s birthday today.
 
       This is a reminder to wish them a happy birthday
 
+      ${phone || email ? "Celebrant's Details : " : ''}
       ${phone ? 'Phone Number: ' + phone : ''}
       ${email ? 'Email Address: ' + email : ''}
 

@@ -4,7 +4,11 @@ const userController = require('../controllers/users')
 const authController = require('../controllers/auth')
 const birthdayController = require('../controllers/birthdays')
 
-router.post('/sign-up', userController.setRequestBody, userController.createUser)
+router.post(
+  '/sign-up',
+  userController.setRequestBody,
+  userController.createUser
+)
 
 router.use(authController.protect)
 router
