@@ -1,6 +1,6 @@
 const cron = require('node-cron')
 
-const connectDatabase  = require('../utils/db-connect')
+const connectDatabase = require('../utils/db-connect')
 const Birthdays = require('../models/birthday')
 const Email = require('../features/email')
 const env = require('../settings/env')
@@ -20,7 +20,7 @@ module.exports = cron.schedule(cronExpression, async () => {
     path: 'owner',
     select: 'isActive isVerified name email phone'
   }
-  
+
   const page = env.page || 100
   let skip = 0
   while (true) {

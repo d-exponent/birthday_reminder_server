@@ -31,7 +31,6 @@ exports.createUser = catchAsync(async (req, res) => {
     message = `One time login password has been sent to ${user.email}`
   }
 
-
   utils.sendResponse(RESPONSE.success, res, {
     status: STATUS.success.created,
     message,

@@ -63,7 +63,6 @@ exports.login = catchAsync(async (req, res, next) => {
 
   const firstLogin = !user.isVerified
 
-
   user.accessCode = undefined
   user.accessCodeExpires = undefined
   user.isVerified = true
