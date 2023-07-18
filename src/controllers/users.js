@@ -39,14 +39,9 @@ exports.createUser = catchAsync(async (req, res) => {
 })
 
 exports.getUsers = catchAsync(async (req, res, next) => {
-  const selected = utils.baseSelect(
-    'role isLoggedIn isActive createdAt updatedAt'
-  )
+  const selected = utils.baseSelect('role isLoggedIn isActive createdAt updatedAt')
   const mongooseQuery = User.find().select(selected)
-  const query = new queryBuilder(mongooseQuery, req.query)
-    .fields()
-    .page()
-    .sort()
+  const query = new queryBuilder(mongooseQuery, req.query).fields().page().sort()
 
   const users = await query.mongooseQuery.exec()
   if (!users) return next(NOT_FOUND_ERR)
@@ -67,11 +62,7 @@ exports.getUser = catchAsync(async ({ customQuery }, res, next) => {
 })
 
 exports.updateUser = catchAsync(async ({ customQuery, body }, res, next) => {
-  const user = await User.findOneAndUpdate(
-    customQuery,
-    body,
-    FIND_UPDATE_OPTIONS
-  )
+  const user = await User.findOneAndUpdate(customQuery, body, FIND_UPDATE_OPTIONS)
   if (!user) return next(NOT_FOUND_ERR)
 
   utils.sendResponse(RESPONSE.success, res, {

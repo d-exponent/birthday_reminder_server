@@ -20,8 +20,7 @@ exports.sendResponse = (type, res, body) => {
 
 exports.baseSelect = (...args) => {
   let defaultSelected = SELECTED_USER_FEILDS
-  args.length &&
-    args.forEach(arg => (defaultSelected = `${defaultSelected} ${arg}`))
+  args.length && args.forEach(arg => (defaultSelected = `${defaultSelected} ${arg}`))
   return defaultSelected
 }
 

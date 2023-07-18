@@ -21,7 +21,7 @@ const birthdaySchema = new Schema({
     required: [true, 'A birthday must have a day']
   },
   email: String,
-  phoneNumber: String,
+  phone: String,
   owner: { type: Schema.Types.ObjectId, ref: 'User' },
   created_at: { type: Date, default: Date.now() }
 })

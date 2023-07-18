@@ -3,11 +3,7 @@ const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
 const queryBuilder = require('../utils/query-builder')
 const { sendResponse } = require('../utils/contollers')
-const {
-  STATUS,
-  RESPONSE,
-  FIND_UPDATE_OPTIONS
-} = require('../settings/constants')
+const { STATUS, RESPONSE, FIND_UPDATE_OPTIONS } = require('../settings/constants')
 
 let error_msg
 
@@ -57,8 +53,7 @@ exports.getBirthdaysForOwner = catchAsync(async (req, res, next) => {
 
 exports.getBirthday = catchAsync(
   async ({ params: { id }, currentUser }, res, next) => {
-    const populateParmas =
-      currentUser && currentUser.role == 'user' ? '' : 'owner'
+    const populateParmas = currentUser && currentUser.role == 'user' ? '' : 'owner'
     const birthday = await BirthDay.findById(id).populate(populateParmas)
 
     if (!birthday) {

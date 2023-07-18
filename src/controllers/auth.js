@@ -25,16 +25,11 @@ let error_msg
 let selected
 
 const UNAUTHORIZED = STATUS.error.unauthorized
-const INVALID_TOKEN_ERROR = new AppError(
-  'Invalid auth credentials',
-  UNAUTHORIZED
-)
+const INVALID_TOKEN_ERROR = new AppError('Invalid auth credentials', UNAUTHORIZED)
 const LOGIN_ERROR = new AppError('Please log in', UNAUTHORIZED)
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.customQuery).select(
-    baseSelect('isActive')
-  )
+  const user = await User.findOne(req.customQuery).select(baseSelect('isActive'))
 
   error_msg = 'The user does not exist'
 
@@ -98,8 +93,7 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
   const user = await User.findOne({ refreshToken }).select(
     baseSelect('refreshToken')
   )
-  if (!user || user.refreshToken !== refreshToken)
-    return next(INVALID_TOKEN_ERROR)
+  if (!user || user.refreshToken !== refreshToken) return next(INVALID_TOKEN_ERROR)
 
   await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
 
@@ -144,8 +138,7 @@ exports.setUserForlogout = async (req, res, next) => {
 
 exports.permit = (...args) => {
   // Ensure at least one role is passed
-  if (!args.length)
-    throw new Error('restrictTo requires at least one valid role')
+  if (!args.length) throw new Error('restrictTo requires at least one valid role')
 
   // Ensure only valid roles  are passed
   args.forEach(arg => {

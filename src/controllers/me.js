@@ -3,15 +3,8 @@ const AppError = require('../utils/app-error')
 const Birthday = require('../models/birthday')
 const catchAsync = require('../utils/catch-async')
 const queryBuilder = require('../utils/query-builder')
-const {
-  sendResponse,
-  defaultSelectedUserValues
-} = require('../utils/contollers')
-const {
-  RESPONSE,
-  STATUS,
-  FIND_UPDATE_OPTIONS
-} = require('../settings/constants')
+const { sendResponse, defaultSelectedUserValues } = require('../utils/contollers')
+const { RESPONSE, STATUS, FIND_UPDATE_OPTIONS } = require('../settings/constants')
 
 let error_msg
 exports.getMe = catchAsync(async ({ currentUser }, res) => {
@@ -56,10 +49,7 @@ exports.getMyBirthdays = catchAsync(async (req, res, next) => {
   const mongooseQuery = Birthday.find({
     owner: req.currentUser['_id']
   }).select('-owner')
-  const query = new queryBuilder(mongooseQuery, req.query)
-    .fields()
-    .page()
-    .sort()
+  const query = new queryBuilder(mongooseQuery, req.query).fields().page().sort()
   const birthdays = await query.mongooseQuery.exec()
 
   if (!birthdays.length) {
