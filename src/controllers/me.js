@@ -1,17 +1,10 @@
-const User = require('../models/user')
 const AppError = require('../utils/app-error')
 const Birthday = require('../models/birthday')
 const catchAsync = require('../utils/catch-async')
-const queryBuilder = require('../utils/query-builder')
-const { sendResponse, defaultSelectedUserValues } = require('../utils/contollers')
-const { RESPONSE, STATUS, FIND_UPDATE_OPTIONS } = require('../settings/constants')
+const { sendResponse } = require('../utils/contollers')
+const { RESPONSE, STATUS } = require('../settings/constants')
 
 let error_msg
-exports.getMe = catchAsync(async ({ currentUser }, res) => {
-  sendResponse(RESPONSE.success, res, {
-    data: defaultSelectedUserValues(currentUser)
-  })
-})
 
 exports.deleteMe = catchAsync(async (req, res) => {
   req.currentUser.isActive = false
@@ -24,51 +17,21 @@ exports.deleteMe = catchAsync(async (req, res) => {
   })
 })
 
-exports.updateMe = catchAsync(async (req, res) => {
-  const user = await User.findByIdAndUpdate(
-    req.currentUser['_id'],
-    req.body,
-    FIND_UPDATE_OPTIONS
-  )
-  sendResponse(RESPONSE.success, res, {
-    data: defaultSelectedUserValues(user)
-  })
-})
-
-exports.addBirthday = catchAsync(async (req, res) => {
-  sendResponse(RESPONSE.success, res, {
-    status: 201,
-    data: await Birthday.create({
-      ...req.body,
-      owner: req.currentUser['_id']
-    })
-  })
-})
-
-exports.getMyBirthdays = catchAsync(async (req, res, next) => {
-  const mongooseQuery = Birthday.find({
-    owner: req.currentUser['_id']
-  }).select('-owner')
-  const query = new queryBuilder(mongooseQuery, req.query).fields().page().sort()
-  const birthdays = await query.mongooseQuery.exec()
-
-  if (!birthdays.length) {
-    error_msg = ` There is no birthday associated with ${req.currentUser.name}`
-    return next(new AppError(error_msg, STATUS.error.notFound))
-  }
-
-  sendResponse(RESPONSE.success, res, {
-    results: birthdays.length,
-    data: birthdays
-  })
-})
-
 //              -----   HELPER MIDDLEWARES ----     //
+exports.setMyIdOnParams = ({ params, currentUser }, _, next) => {
+  params.ownerId = params['user_email_phone_id'] = currentUser['_id']
+  next()
+}
+
+exports.setBodyAddOwner = ({ body, currentUser }, _, next) => {
+  body = { ...body, owner: currentUser['_id'] }
+  next()
+}
 
 exports.checkUserOwnsBirthday = catchAsync(
   async ({ method, params, currentUser }, _, next) => {
     // CRUD on a birthday can only be done by the user who created it
-    const birthday = await Birthday.findById(params.id).exec()
+    const birthday = await Birthday.findById(params.id)
 
     if (!birthday) {
       error_msg = "The requested birthday doesn't exists."
@@ -86,11 +49,11 @@ exports.checkUserOwnsBirthday = catchAsync(
 )
 
 exports.restrictToUpdate = ({ body }, _, next) => {
-  const allowed = ['name', 'email', 'phone']
+  const allowed = ['name', 'phone']
 
   Object.keys(body).forEach(key => {
     if (!allowed.includes(key)) {
-      error_msg = `You are not allowed to update ${key}`
+      error_msg = `You are not allowed to update the /${key}/ on this route`
       return next(new AppError(error_msg, STATUS.error.forbidden))
     }
   })

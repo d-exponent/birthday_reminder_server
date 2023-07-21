@@ -7,18 +7,17 @@ const morgan = require('morgan')
 
 const env = require('./settings/env')
 const errorController = require('./controllers/errors')
-const isProduction = env.isProduction
 
 // MIDDLEWARE CONFIGS
 const corsConfig = {
-  origin: env.allowedOrigins.split(','),
+  origin: env.allowedOrigins ? env.allowedOrigins.split(',') : ['*'],
   methods: ['POST', 'GET', 'PATCH', 'DELETE'],
   credentials: true
 }
 
 const rateLimitConfig = {
   windowMs: 1800000, //30 minutes
-  max: isProduction ? 100 : 1000,
+  max: env.isProduction ? 100 : 1000,
   standardHeaders: true,
   legacyHeaders: false
 }
@@ -31,12 +30,12 @@ module.exports = () => {
   app.use(express.json())
   app.use(mongoSanitize())
   app.use(cookieParser(env.cookieSecret))
-  !isProduction && app.use(morgan('dev'))
-  // app.use(morgan('dev'))
+  !env.isProduction && app.use(morgan('dev'))
 
-  app.use('/api/auth', require('./routes/auth'))
-  app.use('/api/users', require('./routes/users'))
-  app.use('/api/birthdays', require('./routes/birthdays'))
+  app.use('/api/v1', require('./routes/api-v1'))
+  // app.use('/api/auth', require('./routes/auth'))
+  // app.use('/api/users', require('./routes/users'))
+  // app.use('/api/birthdays', require('./routes/birthdays'))
 
   app.use('*', errorController.wildRoutesHandler)
   app.use(errorController.globalErrorHandler)

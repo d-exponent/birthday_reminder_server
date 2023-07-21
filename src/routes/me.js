@@ -7,16 +7,26 @@ const birthdayController = require('../controllers/birthdays')
 router.post('/sign-up', userController.setRequestBody, userController.createUser)
 
 router.use(authController.protect)
+
 router
   .route('/')
-  .get(meController.getMe)
-  .patch(meController.restrictToUpdate, meController.updateMe)
+  .get(
+    meController.setMyIdOnParams,
+    userController.setCustomQueryFromParams,
+    userController.getUser
+  )
+  .patch(
+    meController.setMyIdOnParams,
+    userController.setCustomQueryFromParams,
+    meController.restrictToUpdate,
+    userController.updateUser
+  )
   .delete(authController.setUserForlogout, meController.deleteMe)
 
 router
   .route('/birthdays')
-  .post(meController.addBirthday)
-  .get(meController.getMyBirthdays)
+  .post(meController.setMyIdOnParams, birthdayController.addBirthday)
+  .get(meController.setBodyAddOwner, birthdayController.getBirthdays)
 
 router
   .route('/birthdays/:id')

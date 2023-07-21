@@ -36,6 +36,7 @@ exports.wildRoutesHandler = ({ method, originalUrl }, _, next) => {
 
 exports.globalErrorHandler = (err, _, res, __) => {
   !env.isProduction && console.error('🛑', err)
+  
   let error = {
     ...err,
     message: err.message,

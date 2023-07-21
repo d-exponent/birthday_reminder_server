@@ -18,8 +18,7 @@ let error_msg
 const not_found_status = STATUS.error.notFound
 const NOT_FOUND_ERR = new AppError('Not found', not_found_status)
 
-exports.createUser = catchAsync(async (req, res) => {
-  const { body, currentUser } = req
+exports.createUser = catchAsync(async ({ body, currentUser }, res) => {
   const user = await User.create(body)
 
   let [data, message] = [user, `${user.name} was created successfully`]
@@ -80,6 +79,7 @@ exports.deleteUser = catchAsync(async ({ customQuery }, res, next) => {
   })
 })
 
+
 //              -----   HELPER MIDDLEWARES ----     //
 
 exports.setRequestBody = ({ body, currentUser }, _, next) => {
@@ -103,6 +103,7 @@ exports.setRequestBody = ({ body, currentUser }, _, next) => {
 
 exports.setCustomQueryFromParams = (req, _, next) => {
   let { params } = req
+
   params = params['user_email_phone_id']
   req.customQuery = {}
 

@@ -7,53 +7,48 @@ const { STATUS, RESPONSE, FIND_UPDATE_OPTIONS } = require('../settings/constants
 
 let error_msg
 
-exports.addBirthday = catchAsync(async (req, res) => {
+exports.addBirthday = catchAsync(async ({ params, body }, res) => {
   sendResponse(RESPONSE.success, res, {
     status: 201,
-    data: await BirthDay.create({ ...req.body, owner: req.params.id })
+    data: await BirthDay.create({ ...body, owner: params.ownerId })
   })
 })
 
-exports.getBirthdays = catchAsync(async (req, res, next) => {
-  const mongooseQuery = BirthDay.find().populate({
-    path: 'owner',
-    select: 'name email'
-  })
-  const query = new queryBuilder(mongooseQuery, req.query)
+exports.getBirthdays = catchAsync(async ({ body, query: reqQuery }, res, next) => {
+  let mongooseQuery = BirthDay.find(body)
+  error_msg = 'There are no birthdays at this time'
+
+  if (body.owner) {
+    mongooseQuery = mongooseQuery.select('-owner')
+    error_msg = 'You have no saved birthdays'
+  } else {
+    mongooseQuery = mongooseQuery.populate({
+      path: 'owner',
+      select: 'name email'
+    })
+  }
+
+  const query = new queryBuilder(mongooseQuery, reqQuery)
     .filter()
     .fields()
     .page()
     .sort()
-  const birthdays = await query.mongooseQuery.exec()
+
+  const birthdays = await query.mongooseQuery
 
   if (!birthdays.length) {
-    error_msg = 'There are no birthdays at this time'
     return next(new AppError(error_msg, STATUS.error.notFound))
   }
 
   sendResponse(RESPONSE.success, res, {
     results: birthdays.length,
-    data: birthdays,
-    status: STATUS.success.created
+    data: birthdays
   })
-})
-
-exports.getBirthdaysForOwner = catchAsync(async (req, res, next) => {
-  const birthdays = await BirthDay.find({ owner: req.params.ownerId })
-    .select('name month day phone email')
-    .exec()
-
-  if (!birthdays.length) {
-    error_msg = ` There is no birthday associated with ${req.currentUser.name}`
-    return next(new AppError(error_msg, STATUS.error.notFound))
-  }
-
-  sendResponse(RESPONSE.success, res, { data: birthdays })
 })
 
 exports.getBirthday = catchAsync(
   async ({ params: { id }, currentUser }, res, next) => {
-    const populateParmas = currentUser && currentUser.role == 'user' ? '' : 'owner'
+    const populateParmas = currentUser && currentUser.role == 'admin' ? 'owner' : ''
     const birthday = await BirthDay.findById(id).populate(populateParmas)
 
     if (!birthday) {
