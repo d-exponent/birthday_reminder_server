@@ -6,20 +6,14 @@ const User = require('../models/user')
 const Email = require('../features/email')
 const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
-const { STATUS, RESPONSE, REGEX, USER_ROLES } = require('../settings/constants')
-
+const { baseSelect, defaultSelectedUserValues } = require('../utils/contollers')
+const { generateAccessCode, getTimeIn, signToken } = require('../utils/auth')
 const {
-  sendResponse,
-  baseSelect,
-  defaultSelectedUserValues
-} = require('../utils/contollers')
-
-const {
-  generateAccessCode,
-  getTimeIn,
-  signToken,
-  refreshTokenCookieManager
-} = require('../utils/auth')
+  STATUS,
+  REGEX,
+  USER_ROLES,
+  DELETE_RESPONSE
+} = require('../settings/constants')
 
 let error_msg
 let selected
@@ -42,7 +36,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
   await user.save()
   await new Email(user.name, user.email).sendAccessCode(user.accessCode)
 
-  sendResponse(RESPONSE.success, res, {
+  res.customResponse({
     message: `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
   })
 })
@@ -61,10 +55,10 @@ exports.login = catchAsync(async (req, res, next) => {
   user.accessCode = undefined
   user.accessCodeExpires = undefined
   user.isVerified = true
-  user.refreshToken = refreshTokenCookieManager(res, user.email)
+  user.refreshToken = req.refreshTokenCookieManager(user.email)
   await user.save()
 
-  sendResponse(RESPONSE.success, res, {
+  res.customResponse({
     accessToken: signToken(user.email),
     data: defaultSelectedUserValues(user)
   })
@@ -74,34 +68,30 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 })
 
-exports.logout = catchAsync(async (req, res) => {
-  await req.currentUser.save()
-  sendResponse(RESPONSE.success, res, {
-    status: STATUS.success.noContent,
-    message: ''
-  })
+exports.logout = catchAsync(async ({ currentUser }, res) => {
+  await currentUser.save()
+  res.customResponse(DELETE_RESPONSE)
 })
 
 exports.getAccessToken = catchAsync(async (req, res, next) => {
-  const cookiesLoc = env.isProduction ? 'signedCookies' : 'cookies'
-  const refreshToken = req[cookiesLoc][env.cookieName]
+  const cookies = req.secure ? 'signedCookies' : 'cookies'
+  const refreshToken = req[cookies][env.cookieName]
 
   if (!refreshToken || !REGEX.jwtToken.test(refreshToken)) {
     return next(INVALID_TOKEN_ERROR)
   }
 
-  const user = await User.findOne({ refreshToken }).select(
-    baseSelect('refreshToken')
-  )
+  selected = baseSelect('refreshToken')
+  const user = await User.findOne({ refreshToken }).select(selected)
   if (!user || user.refreshToken !== refreshToken) return next(INVALID_TOKEN_ERROR)
 
   await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
 
   // REFRESH TOKEN ROTATION
-  user.refreshToken = refreshTokenCookieManager(res, user.email)
+  user.refreshToken = req.refreshTokenCookieManager(user.email)
   await user.save()
 
-  sendResponse(RESPONSE.success, res, {
+  res.customResponse({
     accessToken: signToken(user.email),
     status: STATUS.success.created
   })
@@ -119,8 +109,8 @@ exports.protect = catchAsync(async (req, _, next) => {
 
   const decoded = await promisify(jwt.verify)(token, env.accessTokenSecret)
   selected = baseSelect('isActive', 'role', 'isVerified')
-
   const user = await User.findOne({ email: decoded.email }).select(selected)
+
   if (!user || !user.isActive) return next(INVALID_TOKEN_ERROR)
   if (!user.isVerified) return next(LOGIN_ERROR)
 
@@ -128,11 +118,11 @@ exports.protect = catchAsync(async (req, _, next) => {
   next()
 })
 
-exports.setUserForlogout = async (req, res, next) => {
+exports.setUserForlogout = async (req, _, next) => {
   req.currentUser.refreshToken = undefined
   req.currentUser.accessCode = undefined
   req.currentUser.accessCodeExpires = undefined
-  refreshTokenCookieManager(res, '', true)
+  req.refreshTokenCookieManager('', true)
   next()
 }
 

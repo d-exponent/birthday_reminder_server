@@ -7,6 +7,7 @@ const morgan = require('morgan')
 
 const env = require('./settings/env')
 const errorController = require('./controllers/errors')
+const appController = require('./controllers/app')
 
 // MIDDLEWARE CONFIGS
 const corsConfig = {
@@ -32,8 +33,10 @@ module.exports = () => {
   app.use(cookieParser(env.cookieSecret))
   !env.isProduction && app.use(morgan('dev'))
 
-  app.use('/api/v1', require('./routes/api-v1'))
+  app.use(appController.mountCustomResponse)
+  app.use(appController.mountRefreshTokenCookieManager)
 
+  app.use('/api/v1', require('./routes/api-v1'))
   app.use('*', errorController.wildRoutesHandler)
   app.use(errorController.globalErrorHandler)
 

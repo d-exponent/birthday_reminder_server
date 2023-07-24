@@ -21,20 +21,6 @@ exports.signToken = (email, type = TOKENS.access) => {
   const isAccessToken = type === TOKENS.access
   const secret = isAccessToken ? env.accessTokenSecret : env.refreshTokenSecret
   const expiresIn = isAccessToken ? env.accessTokenExpires : env.refreshTokenExpires
-
-  return jwt.sign({ email }, secret, { expiresIn })
-}
-
-exports.refreshTokenCookieManager = (res, email, logout = false) => {
-  const refreshToken = logout ? 'logout' : this.signToken(email, TOKENS.refresh)
-  const isProduction = env.isProduction
-
-  res.cookie(env.cookieName, refreshToken, {
-    httpOnly: isProduction,
-    signed: isProduction,
-    secure: isProduction,
-    maxAge: logout ? 1000 : env.refreshTokenExpires * 1000
-  })
-
-  return refreshToken
+  const token = jwt.sign({ email }, secret, { expiresIn })
+  return token
 }

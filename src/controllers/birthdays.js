@@ -7,10 +7,9 @@ const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
 const queryBuilder = require('../utils/query-builder')
 
-const { sendResponse } = require('../utils/contollers')
 const {
   STATUS,
-  RESPONSE,
+  DELETE_RESPONSE,
   FIND_UPDATE_OPTIONS,
   BIRTHDAYS_IMAGES_DIR
 } = require('../settings/constants')
@@ -70,7 +69,7 @@ exports.deleteImage = catchAsync(
       return next(new AppError(error_msg, STATUS.error.serverError))
     }
 
-    sendResponse(RESPONSE.success, res, { message: '', status: 204 })
+    res.customResponse(DELETE_RESPONSE)
   }
 )
 
@@ -85,12 +84,8 @@ exports.checkUserOwnsImage = catchAsync(async (req, _, next) => {
   })
 
   if (birthdays.length === 0) {
-    return next(
-      new AppError(
-        "you don't have permission to this resource",
-        STATUS.error.forbidden
-      )
-    )
+    error_msg = "you don't have permission to this resource"
+    return next(new AppError(error_msg, STATUS.error.forbidden))
   }
 
   req.birthday = birthdays[0]
@@ -100,7 +95,7 @@ exports.checkUserOwnsImage = catchAsync(async (req, _, next) => {
 // FILE CONTROLLERS AND MIDDLEWARES END **
 
 exports.addBirthday = catchAsync(async ({ params, body }, res) => {
-  sendResponse(RESPONSE.success, res, {
+  res.customResponse({
     status: 201,
     data: await BirthDay.create({ ...body, owner: params.ownerId })
   })
@@ -132,7 +127,7 @@ exports.getBirthdays = catchAsync(async ({ body, query: reqQuery }, res, next) =
     return next(new AppError(error_msg, STATUS.error.notFound))
   }
 
-  sendResponse(RESPONSE.success, res, {
+  res.customResponse({
     results: birthdays.length,
     data: birthdays
   })
@@ -148,20 +143,17 @@ exports.getBirthday = catchAsync(
       return next(new AppError(error_msg, STATUS.error.notFound))
     }
 
-    sendResponse(RESPONSE.success, res, { data: birthday })
+    res.customResponse({ data: birthday })
   }
 )
 
 exports.updateBirthday = catchAsync(async ({ body, params: { id } }, res) => {
-  sendResponse(RESPONSE.success, res, {
+  res.customResponse({
     data: await BirthDay.findByIdAndUpdate(id, body, FIND_UPDATE_OPTIONS)
   })
 })
 
 exports.deleteBirthday = catchAsync(async ({ params: { id } }, res) => {
   await BirthDay.findByIdAndDelete(id)
-  sendResponse(RESPONSE.success, res, {
-    status: STATUS.success.noContent,
-    message: ''
-  })
+  res.customResponse(DELETE_RESPONSE)
 })

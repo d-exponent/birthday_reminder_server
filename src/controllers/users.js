@@ -1,5 +1,4 @@
 const mongoose = require('mongoose')
-
 const User = require('../models/user')
 const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
@@ -9,9 +8,9 @@ const utils = require('../utils/contollers')
 const { generateAccessCode, getTimeIn } = require('../utils/auth')
 const {
   STATUS,
-  RESPONSE,
   REGEX,
-  FIND_UPDATE_OPTIONS
+  FIND_UPDATE_OPTIONS,
+  DELETE_RESPONSE
 } = require('../settings/constants')
 
 let error_msg
@@ -30,7 +29,7 @@ exports.createUser = catchAsync(async ({ body, currentUser }, res) => {
     message = `One time login password has been sent to ${user.email}`
   }
 
-  utils.sendResponse(RESPONSE.success, res, {
+  res.customResponse({
     status: STATUS.success.created,
     message,
     data
@@ -45,7 +44,7 @@ exports.getUsers = catchAsync(async (req, res, next) => {
   const users = await query.mongooseQuery.exec()
   if (!users) return next(NOT_FOUND_ERR)
 
-  utils.sendResponse(RESPONSE.success, res, {
+  res.customResponse({
     results: users.length,
     data: users
   })
@@ -55,7 +54,7 @@ exports.getUser = catchAsync(async ({ customQuery }, res, next) => {
   const user = await User.findOne(customQuery).exec()
   if (!user) return next(NOT_FOUND_ERR)
 
-  utils.sendResponse(RESPONSE.success, res, {
+  res.customResponse({
     data: user
   })
 })
@@ -63,10 +62,7 @@ exports.getUser = catchAsync(async ({ customQuery }, res, next) => {
 exports.updateUser = catchAsync(async ({ customQuery, body }, res, next) => {
   const user = await User.findOneAndUpdate(customQuery, body, FIND_UPDATE_OPTIONS)
   if (!user) return next(NOT_FOUND_ERR)
-
-  utils.sendResponse(RESPONSE.success, res, {
-    data: user
-  })
+  res.customResponse({ data: user })
 })
 
 exports.deleteUser = catchAsync(async ({ customQuery }, res, next) => {
@@ -74,14 +70,10 @@ exports.deleteUser = catchAsync(async ({ customQuery }, res, next) => {
   if (!user) return next(NOT_FOUND_ERR)
 
   await User.findOneAndDelete(customQuery)
-  utils.sendResponse(RESPONSE.success, res, {
-    status: STATUS.success.noContent
-  })
+  res.customResponse(DELETE_RESPONSE)
 })
 
-
 //              -----   HELPER MIDDLEWARES ----     //
-
 exports.setRequestBody = ({ body, currentUser }, _, next) => {
   if (currentUser) {
     // RESTRICTING THE POWERS OF THE ADMIN 😎

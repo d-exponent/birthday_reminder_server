@@ -18,6 +18,11 @@ exports.STATUS = {
   }
 }
 
+exports.DELETE_RESPONSE = {
+  message: '',
+  status: this.STATUS.success.noContent
+}
+
 exports.RESPONSE = {
   success: 'success',
   error: 'error'
@@ -54,7 +59,7 @@ exports.BIRTHDAYS_IMAGES_DIR = path.join(
   __dirname,
   '..',
   'data',
-  'uploads',
   'images',
   'birthdays'
 )
+

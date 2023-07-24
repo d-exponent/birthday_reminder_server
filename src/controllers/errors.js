@@ -1,28 +1,34 @@
 const env = require('../settings/env')
 const AppError = require('../utils/app-error')
-const { sendResponse } = require('../utils/contollers')
 const { STATUS, RESPONSE } = require('../settings/constants')
 
+let error_msg
+
 const handleDuplicateFeilds = ({ keyValue }) =>
-  new AppError(`${Object.values(keyValue)[0]} already exists.`, 500)
+  new AppError(
+    `${Object.values(keyValue)[0]} already exists.`,
+    STATUS.error.serverError
+  )
 
 const handleValidationError = ({ errors }) => {
   const validationMsgs = Object.values(errors).map(e => e.message)
-  return new AppError(`${validationMsgs.join('. ')}`, 400)
+  return new AppError(`${validationMsgs.join('. ')}`, STATUS.error.badRequest)
 }
 
 const sendProductionError = (res, err) => {
   if (!err.isOperational) {
     err = {
-      status: err.status || 500,
+      status: err.status || STATUS.error.serverError,
       message: 'something went wrong'
     }
   }
 
-  sendResponse(RESPONSE.error, res, {
+  const response = {
     status: err.status,
     message: err.message
-  })
+  }
+
+  res.customResponse(response, RESPONSE.error)
 }
 
 exports.wildRoutesHandler = ({ method, originalUrl }, _, next) => {
@@ -35,7 +41,6 @@ exports.wildRoutesHandler = ({ method, originalUrl }, _, next) => {
 }
 
 exports.globalErrorHandler = (err, _, res, __) => {
-  env.isProduction && console.error('🛑', err)
   let error = {
     ...err,
     message: err.message,
@@ -46,30 +51,36 @@ exports.globalErrorHandler = (err, _, res, __) => {
     status: err.status || err.statusCode || STATUS.error.serverError
   }
 
-  if (!env.isProduction) return sendResponse(RESPONSE.error, res, error)
-  if (error.code === 11000) error = handleDuplicateFeilds(error)
-  if (err.name) {
-    switch (error.name) {
-      case 'ValidationError':
-        error = handleValidationError(error)
-        break
-      case 'JsonWebTokenError':
-        error = new AppError('Invalid Token, please login!', STATUS.error.forbidden)
-        break
-      case 'TokenExpiredError':
-        error = new AppError('Expired token, please login!', STATUS.error.forbidden)
-        break
-      case 'MongooseError':
-        error = new AppError('Network error', STATUS.error.badConnection)
-        break
-      default:
-        if (error.message.includes('no such file or directory')) {
-          error = new AppError('The file was not found', STATUS.error.notFound)
-        }
+  if (env.isProduction) {
+    if (error.code === 11000) error = handleDuplicateFeilds(error)
 
-        break
+    if (err.name) {
+      switch (error.name) {
+        case 'ValidationError':
+          error = handleValidationError(error)
+          break
+        case 'JsonWebTokenError':
+          error_msg = 'Invalid Token, please login!'
+          error = new AppError(error_msg, STATUS.error.forbidden)
+          break
+        case 'TokenExpiredError':
+          error_msg = 'Expired token, please login!'
+          error = new AppError(error_msg, STATUS.error.forbidden)
+          break
+        case 'MongooseError':
+          error = new AppError('Network error', STATUS.error.badConnection)
+          break
+        default:
+          if (error.message.includes('no such file or directory')) {
+            error = new AppError('The file was not found', STATUS.error.notFound)
+          }
+          break
+      }
     }
-  }
 
-  sendProductionError(res, error)
+    sendProductionError(res, error)
+  } else {
+    console.error('🛑', err)
+    res.customResponse(error, RESPONSE.error)
+  }
 }

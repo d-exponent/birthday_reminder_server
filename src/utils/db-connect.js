@@ -1,6 +1,5 @@
 const { connect } = require('mongoose')
-const { MONGO_DB_URI, STATUS } = require('../settings/constants')
-const AppError = require('./app-error')
+const { MONGO_DB_URI } = require('../settings/constants')
 
 const connection = {}
 

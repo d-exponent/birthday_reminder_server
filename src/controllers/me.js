@@ -1,8 +1,7 @@
 const AppError = require('../utils/app-error')
 const Birthday = require('../models/birthday')
 const catchAsync = require('../utils/catch-async')
-const { sendResponse } = require('../utils/contollers')
-const { RESPONSE, STATUS } = require('../settings/constants')
+const { STATUS } = require('../settings/constants')
 
 let error_msg
 
@@ -11,7 +10,7 @@ exports.deleteMe = catchAsync(async (req, res) => {
   req.currentUser.isVerified = false
   await req.currentUser.save()
 
-  sendResponse(RESPONSE.success, res, {
+  res.customResponse({
     status: STATUS.success.noContent,
     message: ''
   })
