@@ -33,9 +33,6 @@ module.exports = () => {
   !env.isProduction && app.use(morgan('dev'))
 
   app.use('/api/v1', require('./routes/api-v1'))
-  // app.use('/api/auth', require('./routes/auth'))
-  // app.use('/api/users', require('./routes/users'))
-  // app.use('/api/birthdays', require('./routes/birthdays'))
 
   app.use('*', errorController.wildRoutesHandler)
   app.use(errorController.globalErrorHandler)

@@ -35,8 +35,7 @@ exports.wildRoutesHandler = ({ method, originalUrl }, _, next) => {
 }
 
 exports.globalErrorHandler = (err, _, res, __) => {
-  !env.isProduction && console.error('🛑', err)
-  
+  env.isProduction && console.error('🛑', err)
   let error = {
     ...err,
     message: err.message,
@@ -49,12 +48,28 @@ exports.globalErrorHandler = (err, _, res, __) => {
 
   if (!env.isProduction) return sendResponse(RESPONSE.error, res, error)
   if (error.code === 11000) error = handleDuplicateFeilds(error)
-  if (error.name === 'ValidationError') error = handleValidationError(error)
+  if (err.name) {
+    switch (error.name) {
+      case 'ValidationError':
+        error = handleValidationError(error)
+        break
+      case 'JsonWebTokenError':
+        error = new AppError('Invalid Token, please login!', STATUS.error.forbidden)
+        break
+      case 'TokenExpiredError':
+        error = new AppError('Expired token, please login!', STATUS.error.forbidden)
+        break
+      case 'MongooseError':
+        error = new AppError('Network error', STATUS.error.badConnection)
+        break
+      default:
+        if (error.message.includes('no such file or directory')) {
+          error = new AppError('The file was not found', STATUS.error.notFound)
+        }
 
-  if (error.name === 'JsonWebTokenError')
-    error = new AppError('Invalid Token, please login!', 401)
-  if (error.name === 'TokenExpiredError')
-    error = new AppError('Expired token, please login!', 401)
+        break
+    }
+  }
 
   sendProductionError(res, error)
 }

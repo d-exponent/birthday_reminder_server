@@ -24,7 +24,7 @@ exports.setMyIdOnParams = ({ params, currentUser }, _, next) => {
 }
 
 exports.setBodyAddOwner = ({ body, currentUser }, _, next) => {
-  body = { ...body, owner: currentUser['_id'] }
+  body.owner = currentUser['_id']
   next()
 }
 
@@ -50,7 +50,6 @@ exports.checkUserOwnsBirthday = catchAsync(
 
 exports.restrictToUpdate = ({ body }, _, next) => {
   const allowed = ['name', 'phone']
-
   Object.keys(body).forEach(key => {
     if (!allowed.includes(key)) {
       error_msg = `You are not allowed to update the /${key}/ on this route`

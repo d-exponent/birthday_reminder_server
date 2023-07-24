@@ -7,9 +7,9 @@ const birthdayController = require('../controllers/birthdays')
 router.post('/sign-up', userController.setRequestBody, userController.createUser)
 
 router.use(authController.protect)
-
 router
   .route('/')
+  .delete(authController.setUserForlogout, meController.deleteMe)
   .get(
     meController.setMyIdOnParams,
     userController.setCustomQueryFromParams,
@@ -21,17 +21,31 @@ router
     meController.restrictToUpdate,
     userController.updateUser
   )
-  .delete(authController.setUserForlogout, meController.deleteMe)
 
 router
   .route('/birthdays')
-  .post(meController.setMyIdOnParams, birthdayController.addBirthday)
   .get(meController.setBodyAddOwner, birthdayController.getBirthdays)
+  .post(
+    meController.setMyIdOnParams,
+    birthdayController.upload.single('birthdayImage'),
+    birthdayController.processImageUpload,
+    birthdayController.addBirthday
+  )
 
 router
   .route('/birthdays/:id')
   .get(meController.checkUserOwnsBirthday, birthdayController.getBirthday)
-  .patch(meController.checkUserOwnsBirthday, birthdayController.updateBirthday)
+  .patch(
+    meController.checkUserOwnsBirthday,
+    birthdayController.upload.single('birthdayImage'),
+    birthdayController.processImageUpload,
+    birthdayController.updateBirthday
+  )
   .delete(meController.checkUserOwnsBirthday, birthdayController.deleteBirthday)
+
+router
+  .route('/birthdays/images/:imageName')
+  .get(birthdayController.checkUserOwnsImage, birthdayController.getImage)
+  .delete(birthdayController.checkUserOwnsImage, birthdayController.deleteImage)
 
 module.exports = router

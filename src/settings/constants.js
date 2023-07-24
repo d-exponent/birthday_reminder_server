@@ -1,4 +1,5 @@
 const env = require('./env')
+const path = require('path')
 
 exports.STATUS = {
   success: {
@@ -47,3 +48,13 @@ exports.REGEX = {
 }
 
 exports.MONGO_DB_URI = `mongodb+srv://${env.dbUsername}:${env.dbPassword}@cluster0.ntzames.mongodb.net/${env.db}?retryWrites=true&w=majority`
+
+// exports.BIRTHDAYS_IMAGES_DIR = `${__dirname}/../data/uploads/images/birthdays`
+exports.BIRTHDAYS_IMAGES_DIR = path.join(
+  __dirname,
+  '..',
+  'data',
+  'uploads',
+  'images',
+  'birthdays'
+)

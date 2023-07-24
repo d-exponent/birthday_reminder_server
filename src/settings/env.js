@@ -10,7 +10,6 @@ module.exports = {
   nodeEnv: env.NODE_ENV,
   port: env.PORT || '5000',
   isProduction: env.NODE_ENV === 'production',
-  devHttpProtocol: env.DEV_HTTP_PROTOCOL || 'http',
 
   // Database
   db: env.DB,

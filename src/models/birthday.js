@@ -4,7 +4,7 @@ const { titleCaseNames } = require('./common')
 const birthdaySchema = new Schema({
   name: {
     type: String,
-    required: [true, 'The birthday owner must have a name ']
+    required: [true, 'The birthday must have a name ']
   },
   month: {
     type: Number,
@@ -23,6 +23,8 @@ const birthdaySchema = new Schema({
   email: String,
   phone: String,
   owner: { type: Schema.Types.ObjectId, ref: 'User' },
+  imageCover: { type: String, unique: true },
+  comments: String,
   created_at: { type: Date, default: Date.now() }
 })
 
