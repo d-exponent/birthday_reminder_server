@@ -2,10 +2,8 @@ const env = require('../settings/env')
 const jwt = require('jsonwebtoken')
 const { TOKENS } = require('../settings/constants')
 
-exports.generateRandomNumber = () => Math.round(Math.random() * 9)
-
 exports.generateAccessCode = (length = 4) => {
-  return [...Array(length)].map(this.generateRandomNumber).join('')
+  return [...Array(length)].map(Math.round(Math.random() * 9)).join('')
 }
 
 exports.getTimeIn = (minutes = 0) => new Date(Date.now() + minutes * 60000)
@@ -15,7 +13,7 @@ exports.signToken = (email, type = TOKENS.access) => {
 
   if (!allowedTokenTypes.includes(type)) {
     const types = allowedTokenTypes.map(t => `/${t}/`).join(', ')
-    throw new Error(`type must be one off ${types}`)
+    throw new TypeError(`type must be one off ${types}`)
   }
 
   const isAccessToken = type === TOKENS.access

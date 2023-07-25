@@ -1,43 +1,37 @@
 const env = require('../settings/env')
 const AppError = require('../utils/app-error')
+const commitToDb = require('../utils/commit-error')
 const { STATUS, RESPONSE } = require('../settings/constants')
 
+const ERR_STATUS = STATUS.error
 let error_msg
 
-const handleDuplicateFeilds = ({ keyValue }) =>
-  new AppError(
-    `${Object.values(keyValue)[0]} already exists.`,
-    STATUS.error.serverError
-  )
+const handleDuplicateFeilds = ({ keyValue }) => {
+  error_msg = `${Object.values(keyValue)[0]} already exists.`
+  return new AppError(error_msg, ERR_STATUS.serverError)
+}
 
 const handleValidationError = ({ errors }) => {
   const validationMsgs = Object.values(errors).map(e => e.message)
-  return new AppError(`${validationMsgs.join('. ')}`, STATUS.error.badRequest)
+  return new AppError(`${validationMsgs.join('. ')}`, ERR_STATUS.badRequest)
 }
 
 const sendProductionError = (res, err) => {
+  let errCopy
+
   if (!err.isOperational) {
-    err = {
-      status: err.status || STATUS.error.serverError,
-      message: 'something went wrong'
-    }
+    errCopy = { ...err }
+    err.status = ERR_STATUS.serverError
+    err.message = "Something went wrong. It's not you, it's us😥"
   }
 
-  const response = {
-    status: err.status,
-    message: err.message
-  }
-
-  res.customResponse(response, RESPONSE.error)
+  res.customResponse({ status: err.status, message: err.message }, RESPONSE.error)
+  if (errCopy) commitToDb(errCopy).catch(e => console.error(e))
 }
 
 exports.wildRoutesHandler = ({ method, originalUrl }, _, next) => {
-  next(
-    new AppError(
-      `${method.toUpperCase()} ${originalUrl} is not allowed on this server`,
-      STATUS.error.methodNotAllowed
-    )
-  )
+  error_msg = `${method.toUpperCase()} ${originalUrl} is not allowed on this server`
+  return next(new AppError(error_msg, ERR_STATUS.methodNotAllowed))
 }
 
 exports.globalErrorHandler = (err, _, res, __) => {
@@ -48,7 +42,7 @@ exports.globalErrorHandler = (err, _, res, __) => {
     name: err.name,
     stack: err.stack,
     isOperational: err.isOperational,
-    status: err.status || err.statusCode || STATUS.error.serverError
+    status: err.status || err.statusCode || ERR_STATUS.serverError
   }
 
   if (env.isProduction) {
@@ -61,18 +55,18 @@ exports.globalErrorHandler = (err, _, res, __) => {
           break
         case 'JsonWebTokenError':
           error_msg = 'Invalid Token, please login!'
-          error = new AppError(error_msg, STATUS.error.forbidden)
+          error = new AppError(error_msg, ERR_STATUS.forbidden)
           break
         case 'TokenExpiredError':
           error_msg = 'Expired token, please login!'
-          error = new AppError(error_msg, STATUS.error.forbidden)
+          error = new AppError(error_msg, ERR_STATUS.forbidden)
           break
         case 'MongooseError':
-          error = new AppError('Network error', STATUS.error.badConnection)
+          error = new AppError('Network error', ERR_STATUS.badConnection)
           break
         default:
           if (error.message.includes('no such file or directory')) {
-            error = new AppError('The file was not found', STATUS.error.notFound)
+            error = new AppError('The file was not found', ERR_STATUS.notFound)
           }
           break
       }

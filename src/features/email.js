@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer')
 const env = require('../settings/env')
 
-class Email {
+module.exports = class Email {
   appEmail = env.appEmail
 
   constructor(userName, userEmail) {
@@ -91,5 +91,3 @@ class Email {
     })
   }
 }
-
-module.exports = Email

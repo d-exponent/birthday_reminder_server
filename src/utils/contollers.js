@@ -1,28 +1,22 @@
-const SELECTED_USER_FEILDS = 'name phone email id role'
+const DEFAULT_SELECTED = 'name phone email id role'
+
+exports.defaultSelectedUserValues = user => this.includeOnly(user, DEFAULT_SELECTED)
 
 exports.baseSelect = (...args) => {
-  let defaultSelected = SELECTED_USER_FEILDS
+  let defaultSelected = DEFAULT_SELECTED
   args.length && args.forEach(arg => (defaultSelected = `${defaultSelected} ${arg}`))
   return defaultSelected
 }
 
-exports.purifyDoc = doc => JSON.parse(JSON.stringify(doc))
-
 exports.includeOnly = (doc, ...args) => {
-  if (!args.length) {
-    throw new Error('You must provide at least one value to include')
-  }
+  argsLength = args.length
+  if (argsLength === 0)
+    throw new TypeError('You must provide at least one value to includeOnly')
 
-  const filtered = {}
+  const included = {}
+  if (argsLength === 1) args = args[0].split(' ')
 
-  if (args.length == 1) {
-    args = args[0].split(' ')
-  }
-
-  args.forEach(arg => (args ? (filtered[arg] = doc[arg]) : ''))
-  return filtered
-}
-
-exports.defaultSelectedUserValues = user => {
-  return this.includeOnly(user, SELECTED_USER_FEILDS)
+  // Only include truty properties
+  args.forEach(arg => (arg ? (included[arg] = doc[arg]) : undefined))
+  return included
 }

@@ -11,10 +11,9 @@ exports.mountCustomResponse = (_, res, next) => {
       body.status = body.status || STATUS.success.ok
       body.success = true
     } else {
-      const err = new Error('type parameter must be either error or success')
-      err.name = 'ValueError'
-      throw err
+      throw new TypeError('type parameter must be either "error" or "success"')
     }
+
     this.status(body.status).json({ ...body, status: undefined })
   }
   next()

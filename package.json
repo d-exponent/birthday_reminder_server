@@ -4,11 +4,10 @@
   "description": "Express js server for react js frontend",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "cross-env NODE_ENV=test jest",
     "dev": "nodemon index.js",
-    "start": "node index.js",
-    "prod": "NODE_ENV=production nodemon index.js",
-    "pretty": "prettier --config .prettierrc ./**/*.js --write"
+    "start": "cross-env NODE_ENV=production node index.js",
+    "prod": "cross-env NODE_ENV=production nodemon index.js"
   },
   "repository": {
     "type": "git",
@@ -28,7 +27,6 @@
     "express-rate-limit": "^6.7.0",
     "express-xss-sanitizer": "^1.1.6",
     "expressjs": "^1.0.1",
-    "jest": "^29.5.0",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.3.0",
     "morgan": "^1.10.0",
@@ -39,7 +37,10 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^8.0.2",
+    "cross-env": "^7.0.3",
+    "jest": "^29.6.1",
     "nodemon": "^2.0.22",
-    "prettier": "^2.8.8"
+    "prettier": "^2.8.8",
+    "supertest": "^6.3.3"
   }
 }

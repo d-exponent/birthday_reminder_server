@@ -1,60 +1,57 @@
 const cron = require('node-cron')
-
 const connectDatabase = require('../utils/db-connect')
 const Birthdays = require('../models/birthday')
 const Email = require('../features/email')
+const commitError = require('../utils/commit-error')
 const env = require('../settings/env')
 
 const todaysDate = () => new Date()
+const POPULATE_OPTIONS = {
+  path: 'owner',
+  select: 'isActive isVerified name email phone'
+}
 
-const cronExpression = env.isProduction ? '0 0 */6 * * *' : '0 */20 * * * *'
+module.exports = cron.schedule(
+  env.isProduction ? '0 0 */6 * * *' : '0 */20 * * * *',
+  async () => {
+    console.log(`Scheduled Birthday Reminder started at: ${today}`)
 
-module.exports = cron.schedule(cronExpression, async () => {
-  console.log(`Scheduled Birthday Reminder started at: ${today}`)
-  const today = todaysDate()
-  const query = {
-    day: today.getDate(),
-    month: today.getMonth() + 1
-  }
-  const populateOptions = {
-    path: 'owner',
-    select: 'isActive isVerified name email phone'
-  }
+    const page = env.page || 100
+    const today = todaysDate()
+    const [day, month] = [today.getDate(), today.getMonth() + 1]
 
-  const page = env.page || 100
-  let skip = 0
-  while (true) {
-    try {
-      await connectDatabase()
-      const birthdays = await Birthdays.find(query)
-        .populate(populateOptions)
-        .skip(skip)
-        .limit(page)
+    let skip = 0
+    const retryCount = 0
 
-      // There are no more birthdays for the day
-      if (birthdays.length === 0) break
+    while (true) {
+      try {
+        await connectDatabase()
+        const birthdays = await Birthdays.find({ day, month })
+          .populate(POPULATE_OPTIONS)
+          .skip(skip)
+          .limit(page)
 
-      birthdays.forEach(({ owner, name, phone, email }) => {
-        // Perform for Only valid users
-        if (owner.isActive && owner.isVerified) {
-          new Email(owner.name, owner.email)
-            .sendBirthdayReminder({ name, phone, email })
-            .catch(e => {
-              const error_msg = `🛑 EMAIL ERROR: Couldn't send ${owner.name} an email of ${name}'s birthday => `
-              console.error(error_msg, e.message)
-            })
+        // There are no more birthdays for the day
+        if (birthdays.length === 0) break
 
-          // TODO: Send whatsapp messages
-          // TODO: Send text messages
-          // Perhaps make calls ??
-        }
-      })
-
-      skip += page
-    } catch (e) {
-      // TODO: Send admin an email or a text or something
-      console.error(`🛑 Bday Reminder Job error at ${today}`, e)
-      break
+        birthdays.forEach(({ owner, name, phone, email }) => {
+          if (owner.isActive && owner.isVerified) {
+            new Email(owner.name, owner.email)
+              .sendBirthdayReminder({ name, phone, email })
+              .catch(e => {
+                e.name = 'BirtdayReminderJobError'
+                e.message = `Couldn't send ${owner.name} an email of ${name}'s birthday`
+                commitError(e).catch(e => console.error(e, `At: ${today}`))
+              })
+          }
+        })
+        skip += page
+      } catch (e) {
+        e.name = 'BirtdayReminderJobError'
+        commitError(e).catch(e => console.error(e))
+        if (retryCount === 5) break
+        retryCount++
+      }
     }
   }
-})
+)
