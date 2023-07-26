@@ -43,8 +43,8 @@ exports.SCHEMA_OPTIONS = { toJSON: { virtuals: true } }
 exports.USER_ROLES = ['user', 'admin']
 
 exports.REGEX = {
-  accessCode: /^[0-9]{4}$/,
-  phone: /^\+(?:[0-9] ?){6,14}[0-9]$/,
+  accessCode: /^[0-9]{4,8}$/,
+  phone: /^\+(?:[0-9] ?){6,16}[0-9]$/,
   jwtToken: /^[A-Za-z0-9_-]{2,}(?:\.[A-Za-z0-9_-]{2,}){2}$/,
   bearerJwtToken: /^Bearer [A-Za-z0-9_-]{2,}(?:\.[A-Za-z0-9_-]{2,}){2}$/,
   mondoDbObjectId: /^[a-f\d]{24}$/,

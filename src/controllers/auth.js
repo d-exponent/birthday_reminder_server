@@ -6,7 +6,7 @@ const User = require('../models/user')
 const Email = require('../features/email')
 const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
-const { baseSelect, defaultSelectedUserValues } = require('../utils/contollers')
+const { select, getAllowedProperties } = require('../utils/user-doc')
 const { generateAccessCode, getTimeIn, signToken } = require('../utils/auth')
 const {
   STATUS,
@@ -23,7 +23,7 @@ const INVALID_TOKEN_ERROR = new AppError('Invalid auth credentials', UNAUTHORIZE
 const LOGIN_ERROR = new AppError('Please log in', UNAUTHORIZED)
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.customQuery).select(baseSelect('isActive'))
+  const user = await User.findOne(req.customQuery).select(select('isActive'))
 
   error_msg = 'The user does not exist'
 
@@ -31,7 +31,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
     return next(new AppError(error_msg, STATUS.error.notFound))
 
   user.accessCode = generateAccessCode()
-  user.accessCodeExpires = getTimeIn((minutes = 10))
+  user.accessCodeExpires = getTimeIn(10)
 
   await user.save()
   await new Email(user.name, user.email).sendAccessCode(user.accessCode)
@@ -42,7 +42,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
 })
 
 exports.login = catchAsync(async (req, res, next) => {
-  const selected = baseSelect('accessCodeExpires', 'role', 'isVerified')
+  const selected = select('accessCodeExpires', 'role', 'isVerified')
 
   const user = await User.findOne(req.customQuery).select(selected)
 
@@ -60,7 +60,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
   res.customResponse({
     accessToken: signToken(user.email),
-    data: defaultSelectedUserValues(user)
+    data: getAllowedProperties(user)
   })
 
   if (firstLogin) {
@@ -81,7 +81,7 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
     return next(INVALID_TOKEN_ERROR)
   }
 
-  selected = baseSelect('refreshToken')
+  selected = select('refreshToken')
   const user = await User.findOne({ refreshToken }).select(selected)
   if (!user || user.refreshToken !== refreshToken) return next(INVALID_TOKEN_ERROR)
 
@@ -108,7 +108,7 @@ exports.protect = catchAsync(async (req, _, next) => {
   if (!token) return next(INVALID_TOKEN_ERROR)
 
   const decoded = await promisify(jwt.verify)(token, env.accessTokenSecret)
-  selected = baseSelect('isActive', 'role', 'isVerified')
+  selected = select('isActive', 'role', 'isVerified')
   const user = await User.findOne({ email: decoded.email }).select(selected)
 
   if (!user || !user.isActive) return next(INVALID_TOKEN_ERROR)

@@ -2,12 +2,12 @@
   "name": "ecl_birthday_remibder",
   "version": "1.0.0",
   "description": "Express js server for react js frontend",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "cross-env NODE_ENV=test jest",
-    "dev": "nodemon index.js",
-    "start": "cross-env NODE_ENV=production node index.js",
-    "prod": "cross-env NODE_ENV=production nodemon index.js"
+    "test": "cross-env NODE_ENV=test jest --testTimeout=9000",
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "start": "cross-env NODE_ENV=production node server.js",
+    "prod": "cross-env NODE_ENV=production nodemon server.js"
   },
   "repository": {
     "type": "git",

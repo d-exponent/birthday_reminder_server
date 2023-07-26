@@ -15,7 +15,6 @@ module.exports = async error => {
   }
 
   try {
-    // Will not establish q new connection if one already exists
     await connectDatabase()
     return await ErrorModel.create(e)
   } catch (err) {

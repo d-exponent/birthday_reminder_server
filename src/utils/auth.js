@@ -2,11 +2,21 @@ const env = require('../settings/env')
 const jwt = require('jsonwebtoken')
 const { TOKENS } = require('../settings/constants')
 
-exports.generateAccessCode = (length = 4) => {
-  return [...Array(length)].map(Math.round(Math.random() * 9)).join('')
+const asssertPositiveIntegerOrZero = (num, name) => {
+  if (typeof num !== 'number' || num < 0 || num.toString().includes('.'))
+    throw new TypeError(`${name} must be a positive integer or zero (0)`)
 }
 
-exports.getTimeIn = (minutes = 0) => new Date(Date.now() + minutes * 60000)
+exports.generateAccessCode = (length = 4) => {
+  asssertPositiveIntegerOrZero(length, 'length')
+  if (length < 4 || length > 8) throw TypeError('length must between 4 to 8')
+  return [...Array(length)].map(_ => Math.round(Math.random() * 9)).join('')
+}
+
+exports.getTimeIn = (minutes = 0) => {
+  asssertPositiveIntegerOrZero(minutes, 'minutes')
+  return new Date(Date.now() + minutes * 60000)
+}
 
 exports.signToken = (email, type = TOKENS.access) => {
   const allowedTokenTypes = Object.values(TOKENS)
@@ -22,3 +32,5 @@ exports.signToken = (email, type = TOKENS.access) => {
   const token = jwt.sign({ email }, secret, { expiresIn })
   return token
 }
+
+

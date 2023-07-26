@@ -4,7 +4,7 @@ const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
 const queryBuilder = require('../utils/query-builder')
 const Email = require('../features/email')
-const utils = require('../utils/contollers')
+const utils = require('../utils/user-doc')
 const { generateAccessCode, getTimeIn } = require('../utils/auth')
 const {
   STATUS,
@@ -25,7 +25,7 @@ exports.createUser = catchAsync(async ({ body, currentUser }, res) => {
   // New User
   if (!currentUser) {
     await new Email(user.name, user.email).sendAccessCode(user.accessCode)
-    data = utils.defaultSelectedUserValues(user)
+    data = utils.getAllowedProperties(user)
     message = `One time login password has been sent to ${user.email}`
   }
 
@@ -37,7 +37,7 @@ exports.createUser = catchAsync(async ({ body, currentUser }, res) => {
 })
 
 exports.getUsers = catchAsync(async (req, res, next) => {
-  const selected = utils.baseSelect('role isLoggedIn isActive createdAt updatedAt')
+  const selected = utils.select('role isLoggedIn isActive createdAt updatedAt')
   const mongooseQuery = User.find().select(selected)
   const query = new queryBuilder(mongooseQuery, req.query).fields().page().sort()
 
