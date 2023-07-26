@@ -32,7 +32,7 @@ module.exports = class Email {
 
   async send(params) {
     await this.transport().sendMail({
-      from: this.appEmail,
+      from: `Eclipse Reminder <${this.appEmail}>`,
       to: this.userEmail,
       text: params.text,
       subject: params.subject

@@ -1,11 +1,12 @@
 const jwt = require('jsonwebtoken')
 const { promisify } = require('util')
-
 const env = require('../settings/env')
 const User = require('../models/user')
 const Email = require('../features/email')
 const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
+const commitError = require('../utils/commit-error')
+const { EmailError, UserError } = require('../utils/custom-errors')
 const { select, getAllowedProperties } = require('../utils/user-doc')
 const { generateAccessCode, getTimeIn, signToken } = require('../utils/auth')
 const {
@@ -25,16 +26,24 @@ const LOGIN_ERROR = new AppError('Please log in', UNAUTHORIZED)
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
   const user = await User.findOne(req.customQuery).select(select('isActive'))
 
-  error_msg = 'The user does not exist'
-
-  if (!user || !user.isActive)
+  if (!user || !user.isActive) {
+    error_msg = 'The user does not exist'
     return next(new AppError(error_msg, STATUS.error.notFound))
+  }
 
   user.accessCode = generateAccessCode()
   user.accessCodeExpires = getTimeIn(10)
-
   await user.save()
-  await new Email(user.name, user.email).sendAccessCode(user.accessCode)
+
+  // To avoid response latency from the emailing operation, Promise chain is more effective
+  const emailer = new Email(user.name, user.email)
+  emailer.sendAccessCode(user.accessCode).catch(async () => {
+    try {
+      await emailer.sendAccessCode(user.accessCode) // Retry
+    } catch (e) {
+      commitError(new EmailError(e.message)).catch(e => console.error(e))
+    }
+  })
 
   res.customResponse({
     message: `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
@@ -64,7 +73,11 @@ exports.login = catchAsync(async (req, res, next) => {
   })
 
   if (firstLogin) {
-    await new Email(user.name, user.email).sendWelcome()
+    try {
+      await new Email(user.name, user.email).sendWelcome()
+    } catch (e) {
+      commitError(e).catch(err => console.error(err))
+    }
   }
 })
 
@@ -148,7 +161,6 @@ exports.permit = (...args) => {
 }
 
 // -------------  HELPER MIDDLEWARE
-
 exports.validateAccessCodeSetCustomQuery = (req, _, next) => {
   const { customQuery, params, originalUrl } = req
 

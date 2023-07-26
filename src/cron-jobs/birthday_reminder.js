@@ -4,12 +4,15 @@ const Birthdays = require('../models/birthday')
 const Email = require('../features/email')
 const commitError = require('../utils/commit-error')
 const env = require('../settings/env')
+const { BirthdayReminderJobError, EmailError } = require('../utils/custom-errors')
 
 const todaysDate = () => new Date()
 const POPULATE_OPTIONS = {
   path: 'owner',
   select: 'isActive isVerified name email phone'
 }
+
+let error
 
 module.exports = cron.schedule(
   env.isProduction ? '0 0 */6 * * *' : '0 */20 * * * *',
@@ -23,7 +26,7 @@ module.exports = cron.schedule(
     let skip = 0
     const retryCount = 0
 
-    while (true) {
+    while (retryCount < 3) {
       try {
         await connectDatabase()
         const birthdays = await Birthdays.find({ day, month })
@@ -39,17 +42,20 @@ module.exports = cron.schedule(
             new Email(owner.name, owner.email)
               .sendBirthdayReminder({ name, phone, email })
               .catch(e => {
-                e.name = 'BirtdayReminderJobError'
-                e.message = `Couldn't send ${owner.name} an email of ${name}'s birthday`
-                commitError(e).catch(e => console.error(e, `At: ${today}`))
+                error = new EmailError(e.message)
+                commitError(error).catch(e => console.error(e))
+
+                error = new BirthdayReminderJobError(
+                  `Couldn't send ${owner.name} an email of ${name}'s birthday`
+                )
+                commitError(error).catch(e => console.error(e))
               })
           }
         })
         skip += page
       } catch (e) {
-        e.name = 'BirtdayReminderJobError'
-        commitError(e).catch(e => console.error(e))
-        if (retryCount === 5) break
+        error = new BirthdayReminderJobError(e.message)
+        commitError(error).catch(e => console.error(e))
         retryCount++
       }
     }

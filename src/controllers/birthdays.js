@@ -16,7 +16,7 @@ const {
 
 let error_msg
 
-const fullImageFilePath = imageName => `${BIRTHDAYS_IMAGES_DIR}/${imageName}`
+const imagePath = imageName => `${BIRTHDAYS_IMAGES_DIR}/${imageName}`
 
 // FILES CONTROLLERS AND MIDDLEWARES
 const multerFilter = (_, file, cb) => {
@@ -39,7 +39,7 @@ exports.processImageUpload = catchAsync(
         body.imageCover ||
         `${name.toLowerCase().split(' ').join('-')}-${uniqueId}.png`
 
-      await sharp(file.buffer).resize(800).png().toFile(fullImageFilePath(imageName))
+      await sharp(file.buffer).resize(800).png().toFile(imagePath(imageName))
       body.imageCover = imageName
     }
     next()
@@ -47,7 +47,7 @@ exports.processImageUpload = catchAsync(
 )
 
 exports.getImage = catchAsync(async ({ params: { imageName } }, res) => {
-  res.sendFile(fullImageFilePath(imageName))
+  res.sendFile(imagePath(imageName))
 })
 
 exports.deleteImage = catchAsync(
@@ -56,7 +56,7 @@ exports.deleteImage = catchAsync(
 
     const [birthdaySettled, fsSettled] = await Promise.allSettled([
       birthday.save(),
-      fs.unlink(fullImageFilePath(imageName))
+      fs.unlink(imagePath(imageName))
     ])
 
     if (fsSettled.status === 'rejected') {
@@ -76,14 +76,14 @@ exports.deleteImage = catchAsync(
 exports.checkUserOwnsImage = catchAsync(async (req, _, next) => {
   const { currentUser, params } = req
 
-  if (currentUser.role === 'admin') return next()
+  if (currentUser?.role === 'admin') return next()
 
   const birthdays = await BirthDay.find({
     owner: currentUser['_id'],
-    imageCover: params.imageName
+    imageCover: params?.imageName
   })
 
-  if (birthdays.length === 0) {
+  if (birthdays?.length === 0) {
     error_msg = "you don't have permission to this resource"
     return next(new AppError(error_msg, STATUS.error.forbidden))
   }
@@ -96,7 +96,7 @@ exports.checkUserOwnsImage = catchAsync(async (req, _, next) => {
 
 exports.addBirthday = catchAsync(async ({ params, body }, res) => {
   res.customResponse({
-    status: 201,
+    status: STATUS.success.created,
     data: await BirthDay.create({ ...body, owner: params.ownerId })
   })
 })
