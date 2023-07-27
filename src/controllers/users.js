@@ -2,10 +2,10 @@ const mongoose = require('mongoose')
 const User = require('../models/user')
 const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
-const queryBuilder = require('../utils/query-builder')
+const BuildMongooseQuery = require('../utils/query-builder')
 const Email = require('../features/email')
 const utils = require('../utils/user-doc')
-const { generateAccessCode, getTimeIn } = require('../utils/auth')
+const { generateAccessCode, timeInMinutes } = require('../utils/auth')
 const {
   STATUS,
   REGEX,
@@ -25,7 +25,7 @@ exports.createUser = catchAsync(async ({ body, currentUser }, res) => {
   // New User
   if (!currentUser) {
     await new Email(user.name, user.email).sendAccessCode(user.accessCode)
-    data = utils.getAllowedProperties(user)
+    data = utils.excludeNonDefaults(user)
     message = `One time login password has been sent to ${user.email}`
   }
 
@@ -37,9 +37,14 @@ exports.createUser = catchAsync(async ({ body, currentUser }, res) => {
 })
 
 exports.getUsers = catchAsync(async (req, res, next) => {
-  const selected = utils.select('role isLoggedIn isActive createdAt updatedAt')
+  const selected = utils.inludeToDefaultSelects(
+    'role isLoggedIn isActive createdAt updatedAt'
+  )
   const mongooseQuery = User.find().select(selected)
-  const query = new queryBuilder(mongooseQuery, req.query).fields().page().sort()
+  const query = new BuildMongooseQuery(mongooseQuery, req.query)
+    .fields()
+    .page()
+    .sort()
 
   const users = await query.mongooseQuery.exec()
   if (!users) return next(NOT_FOUND_ERR)
@@ -66,9 +71,6 @@ exports.updateUser = catchAsync(async ({ customQuery, body }, res, next) => {
 })
 
 exports.deleteUser = catchAsync(async ({ customQuery }, res, next) => {
-  const user = await User.findOne(customQuery)
-  if (!user) return next(NOT_FOUND_ERR)
-
   await User.findOneAndDelete(customQuery)
   res.customResponse(DELETE_RESPONSE)
 })
@@ -85,7 +87,7 @@ exports.setRequestBody = ({ body, currentUser }, _, next) => {
   } else {
     // A new user
     body.accessCode = generateAccessCode()
-    body.accessCodeExpires = getTimeIn(10)
+    body.accessCodeExpires = timeInMinutes(10)
     body.isActive = true
     body.isVerified = false
     body.role = 'user'

@@ -1,23 +1,31 @@
-exports.DEFAULT_SELECTED = 'name phone email id role'
+exports.DEFAULT_SELECTS = 'name phone email id role'
 
-exports.getAllowedProperties = user => this.includeOnly(user, this.DEFAULT_SELECTED)
+exports.excludeNonDefaults = user => this.assignOnly(user, this.DEFAULT_SELECTS)
 
-exports.select = (...args) => {
-  return args.reduce(
-    (acc, cur) => (cur.length === 0 || acc.includes(cur) ? acc : `${acc} ${cur}`),
-    this.DEFAULT_SELECTED
-  )
+exports.inludeToDefaultSelects = (...args) => {
+  const reducer = (accumulator, select) => {
+    if (typeof select === 'string')
+      return select.length === 0 ? accumulator : accumulator + ` ${select}`
+    throw new TypeError('select arguments can only be strings')
+  }
+  const selects = args.reduce(reducer, this.DEFAULT_SELECTS)
+  const uniqueSelects = [...new Set(selects.split(' '))]
+  return uniqueSelects.join(' ')
 }
 
-exports.includeOnly = (doc, ...args) => {
-  argsLength = args.length
-  if (argsLength === 0) return {}
-  if (argsLength === 1) args = args[0].split(' ')
+exports.assignOnly = (doc, ...args) => {
+  const assignDefined = (acc, key) => {
+    if (doc[key] !== undefined) acc[key] = doc[key]
+  }
 
-  const included = {}
-  args.forEach(arg => {
-    if (typeof arg !== 'string' || arg.length === 0) return
-    if (doc[arg]) included[arg] = doc[arg]
-  })
-  return included
+  const reducer = (accumulator, current) => {
+    if (typeof current === 'string' && current.length) {
+      current.includes(' ')
+        ? current.split(' ').forEach(c => assignDefined(accumulator, c))
+        : assignDefined(accumulator, current)
+    }
+    return accumulator
+  }
+
+  return args.reduce(reducer, {})
 }

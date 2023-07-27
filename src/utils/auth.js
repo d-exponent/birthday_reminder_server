@@ -13,24 +13,23 @@ exports.generateAccessCode = (length = 4) => {
   return [...Array(length)].map(_ => Math.round(Math.random() * 9)).join('')
 }
 
-exports.getTimeIn = (minutes = 0) => {
+exports.timeInMinutes = (minutes = 0) => {
   asssertPositiveIntegerOrZero(minutes, 'minutes')
   return new Date(Date.now() + minutes * 60000)
 }
 
 exports.signToken = (email, type = TOKENS.access) => {
-  const allowedTokenTypes = Object.values(TOKENS)
-
-  if (!allowedTokenTypes.includes(type)) {
-    const types = allowedTokenTypes.map(t => `/${t}/`).join(', ')
-    throw new TypeError(`type must be one off ${types}`)
+  const allowedTypes = Object.values(TOKENS)
+  if (!allowedTypes.includes(type)) {
+    const types = allowedTypes.map(t => `/${t}/`).join(', ')
+    throw new TypeError(`type must be one of ${types}`)
   }
 
   const isAccessToken = type === TOKENS.access
   const secret = isAccessToken ? env.accessTokenSecret : env.refreshTokenSecret
   const expiresIn = isAccessToken ? env.accessTokenExpires : env.refreshTokenExpires
+
+  
   const token = jwt.sign({ email }, secret, { expiresIn })
   return token
 }
-
-

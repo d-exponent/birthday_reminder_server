@@ -62,6 +62,7 @@ exports.globalErrorHandler = (err, _, res, __) => {
           error = new AppError(error_msg, ERR_STATUS.forbidden)
           break
         case 'MongooseError':
+          console.log(error)
           error = new AppError('Network error', ERR_STATUS.badConnection)
           break
         default:

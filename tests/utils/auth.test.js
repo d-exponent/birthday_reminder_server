@@ -1,4 +1,8 @@
-const { generateAccessCode, getTimeIn, signToken } = require('../../src/utils/auth')
+const {
+  generateAccessCode,
+  timeInMinutes,
+  signToken
+} = require('../../src/utils/auth')
 const { REGEX } = require('../../src/settings/constants')
 
 describe('generateAccessCode funtion', () => {
@@ -56,18 +60,20 @@ describe('generateAccessCode funtion', () => {
   })
 })
 
-describe('getTimeIn funtion', () => {
+describe('timeInMinutes funtion', () => {
   const removeExtention = timeString => timeString.split('.')[0]
 
   test('return current time by default', () => {
-    expect(removeExtention(getTimeIn().toString())).toEqual(
+    expect(removeExtention(timeInMinutes().toString())).toEqual(
       removeExtention(new Date().toString())
     )
   })
 
   test('return time in target minutes', () => {
     const targetMins = 10
-    expect(getTimeIn(targetMins)).toEqual(new Date(Date.now() + targetMins * 60000))
+    expect(timeInMinutes(targetMins)).toEqual(
+      new Date(Date.now() + targetMins * 60000)
+    )
   })
 })
 

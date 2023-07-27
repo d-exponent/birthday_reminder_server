@@ -1,6 +1,7 @@
 const { Schema, model } = require('mongoose')
 const { SCHEMA_OPTIONS, USER_ROLES, REGEX } = require('../settings/constants')
 const { titleCaseNames } = require('./common')
+const Birthday = require('./birthday')
 
 const userSchema = new Schema(
   {
@@ -55,6 +56,17 @@ userSchema.pre('update', function (next) {
 userSchema.pre(/^find/, function (next) {
   this.select('-__v')
   next()
+})
+
+userSchema.pre('findOneAndDelete', async function (next) {
+  const query = this.getQuery()
+  const userToDelete = await this.model.findOne(query)
+  this._userId = userToDelete['_id']
+  next()
+})
+
+userSchema.post('findOneAndDelete', async function () {
+  await Birthday.deleteMany({ owner: this._userId })
 })
 
 module.exports = model('User', userSchema)

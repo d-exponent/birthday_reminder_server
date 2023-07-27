@@ -5,7 +5,7 @@ const sharp = require('sharp')
 const BirthDay = require('../models/birthday')
 const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
-const queryBuilder = require('../utils/query-builder')
+const BuildMongooseQuery = require('../utils/query-builder')
 
 const {
   STATUS,
@@ -115,7 +115,7 @@ exports.getBirthdays = catchAsync(async ({ body, query: reqQuery }, res, next) =
     })
   }
 
-  const query = new queryBuilder(mongooseQuery, reqQuery)
+  const query = new BuildMongooseQuery(mongooseQuery, reqQuery)
     .filter()
     .fields()
     .page()

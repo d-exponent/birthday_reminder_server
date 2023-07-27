@@ -23,7 +23,7 @@ const birthdaySchema = new Schema({
   email: String,
   phone: String,
   owner: { type: Schema.Types.ObjectId, ref: 'User' },
-  imageCover: { type: String, unique: true },
+  imageCover: String,
   comments: String,
   created_at: { type: Date, default: Date.now() }
 })
