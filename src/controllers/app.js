@@ -19,8 +19,8 @@ exports.mountCustomResponse = (_, res, next) => {
   next()
 }
 
-exports.mountRefreshTokenCookieManager = (req, res, next) => {
-  req.refreshTokenCookieManager = function (email, logout = false) {
+exports.mountRefreshTokenManager = (req, res, next) => {
+  req.refreshTokenManager = function (email, logout = false) {
     const refreshToken = logout ? 'logout' : signToken(email, TOKENS.refresh)
     const isSecure = this.secure
 

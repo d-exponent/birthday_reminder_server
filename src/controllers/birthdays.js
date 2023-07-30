@@ -19,15 +19,13 @@ let error_msg
 const imagePath = imageName => `${BIRTHDAYS_IMAGES_DIR}/${imageName}`
 
 // FILES CONTROLLERS AND MIDDLEWARES
-const multerFilter = (_, file, cb) => {
-  if (file.mimetype.startsWith('image')) return cb(null, true)
-  error_msg = `${file.mimetype} is an unsupported format. Please upload only images`
-  return cb(new AppError(error_msg, STATUS.error.badRequest), false)
-}
-
 exports.upload = multer({
   storage: multer.memoryStorage(),
-  fileFilter: multerFilter
+  fileFilter: (_, file, cb) => {
+    if (file.mimetype.startsWith('image')) return cb(null, true)
+    error_msg = `${file.mimetype} is an unsupported format. Please upload only images`
+    return cb(new AppError(error_msg, STATUS.error.badRequest), false)
+  }
 })
 
 exports.processImageUpload = catchAsync(

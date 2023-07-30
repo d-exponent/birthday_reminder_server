@@ -66,7 +66,7 @@ exports.login = catchAsync(async (req, res, next) => {
   user.accessCode = undefined
   user.accessCodeExpires = undefined
   user.isVerified = true
-  user.refreshToken = req.refreshTokenCookieManager(user.email)
+  user.refreshToken = req.refreshTokenManager(user.email)
   await user.save()
 
   res.customResponse({
@@ -103,7 +103,7 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
   await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
 
   // REFRESH TOKEN ROTATION
-  user.refreshToken = req.refreshTokenCookieManager(user.email)
+  user.refreshToken = req.refreshTokenManager(user.email)
   await user.save()
 
   res.customResponse({
@@ -137,7 +137,7 @@ exports.setUserForlogout = async (req, _, next) => {
   req.currentUser.refreshToken = undefined
   req.currentUser.accessCode = undefined
   req.currentUser.accessCodeExpires = undefined
-  req.refreshTokenCookieManager('', true)
+  req.refreshTokenManager('', true)
   next()
 }
 

@@ -38,5 +38,3 @@ module.exports = {
   refreshTokenExpires: Number(env.REFRESH_TOKEN_EXPIRES),
   accessTokenExpires: Number(env.ACCESS_TOKEN_EXPIRES)
 }
-
-console.log(module.exports)
