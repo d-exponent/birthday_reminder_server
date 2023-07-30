@@ -29,7 +29,6 @@ exports.signToken = (email, type = TOKENS.access) => {
   const secret = isAccessToken ? env.accessTokenSecret : env.refreshTokenSecret
   const expiresIn = isAccessToken ? env.accessTokenExpires : env.refreshTokenExpires
 
-  
   const token = jwt.sign({ email }, secret, { expiresIn })
   return token
 }
