@@ -2,7 +2,7 @@ exports.DEFAULT_SELECTS = 'name phone email id role'
 
 exports.excludeNonDefaults = user => this.assignOnly(user, this.DEFAULT_SELECTS)
 
-exports.inludeToDefaultSelects = (...args) => {
+exports.defaultSelectsAnd = (...args) => {
   const reducer = (accumulator, select) => {
     if (typeof select === 'string')
       return select.length === 0 ? accumulator : accumulator + ` ${select}`

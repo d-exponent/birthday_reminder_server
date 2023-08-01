@@ -1,6 +1,6 @@
 const {
   DEFAULT_SELECTS,
-  inludeToDefaultSelects,
+  defaultSelectsAnd,
   assignOnly,
   excludeNonDefaults
 } = require('../../src/utils/user-doc')
@@ -14,27 +14,27 @@ const MOCK_USER = {
   id: 1
 }
 
-describe('inludeToDefaultSelects function', () => {
+describe('defaultSelectsAnd function', () => {
   test('return a string', () => {
-    expect(typeof inludeToDefaultSelects()).toBe('string')
+    expect(typeof defaultSelectsAnd()).toBe('string')
   })
 
   describe(`return ${DEFAULT_SELECTS}`, () => {
     test('without arguments', () => {
-      expect(inludeToDefaultSelects()).toBe(DEFAULT_SELECTS)
+      expect(defaultSelectsAnd()).toBe(DEFAULT_SELECTS)
     })
 
     test('recieve one aregument and argument is in DEFAULT_SELECTS', () => {
       const selectedArr = DEFAULT_SELECTS.split(' ')
       expect(
-        inludeToDefaultSelects(
+        defaultSelectsAnd(
           selectedArr[Math.floor(Math.random() * selectedArr.length)]
         )
       ).toBe(DEFAULT_SELECTS)
     })
 
     test('empty string argugment', () => {
-      expect(inludeToDefaultSelects('')).toBe(DEFAULT_SELECTS)
+      expect(defaultSelectsAnd('')).toBe(DEFAULT_SELECTS)
     })
   })
 })

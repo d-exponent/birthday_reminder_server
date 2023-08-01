@@ -7,7 +7,7 @@ const AppError = require('../utils/app-error')
 const catchAsync = require('../utils/catch-async')
 const commitError = require('../utils/commit-error')
 const { EmailError } = require('../utils/custom-errors')
-const { inludeToDefaultSelects, excludeNonDefaults } = require('../utils/user-doc')
+const { defaultSelectsAnd, excludeNonDefaults } = require('../utils/user-doc')
 const { generateAccessCode, timeInMinutes, signToken } = require('../utils/auth')
 const {
   STATUS,
@@ -24,37 +24,31 @@ const INVALID_TOKEN_ERROR = new AppError('Invalid auth credentials', UNAUTHORIZE
 const LOGIN_ERROR = new AppError('Please log in', UNAUTHORIZED)
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.customQuery).select(
-    inludeToDefaultSelects('isActive')
-  )
+  selected = defaultSelectsAnd('isActive')
+  const user = await User.findOne(req.customQuery).select(selected)
 
   if (!user || !user.isActive) {
-    error_msg = 'The user does not exist'
-    return next(new AppError(error_msg, STATUS.error.notFound))
+    return next(new AppError('The user does not exist', STATUS.error.notFound))
   }
 
   user.accessCode = generateAccessCode()
   user.accessCodeExpires = timeInMinutes(10)
   await user.save()
 
-  // To avoid response latency from the emailing operation, Promise chain is more effective
-  const emailer = new Email(user.name, user.email)
-  emailer.sendAccessCode(user.accessCode).catch(async () => {
-    try {
-      await emailer.sendAccessCode(user.accessCode) // Retry
-    } catch (e) {
-      commitError(new EmailError(e.message)).catch(e => console.error(e))
-    }
-  })
-
-  res.customResponse({
-    message: `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
-  })
+  let message = `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
+  try {
+    await new Email(user.name, user.email).sendAccessCode(user.accessCode)
+    res.customResponse({ message })
+  } catch (e) {
+    message = `Error sending ${user.email} an access code`
+    res.customResponse({ message })
+    commitError(new EmailError(e.message || message)).catch(e => console.error(e))
+  }
 })
 
 exports.login = catchAsync(async (req, res, next) => {
   const user = await User.findOne(req.customQuery).select(
-    inludeToDefaultSelects('accessCodeExpires', 'role', 'isVerified')
+    defaultSelectsAnd('accessCodeExpires', 'role', 'isVerified')
   )
 
   if (!user || Date.now() > user.accessCodeExpires.getTime()) {
@@ -96,7 +90,7 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
     return next(INVALID_TOKEN_ERROR)
   }
 
-  selected = inludeToDefaultSelects('refreshToken')
+  selected = defaultSelectsAnd('refreshToken')
   const user = await User.findOne({ refreshToken }).select(selected)
   if (!user || user.refreshToken !== refreshToken) return next(INVALID_TOKEN_ERROR)
 
@@ -123,7 +117,7 @@ exports.protect = catchAsync(async (req, _, next) => {
   if (!token) return next(INVALID_TOKEN_ERROR)
 
   const decoded = await promisify(jwt.verify)(token, env.accessTokenSecret)
-  selected = inludeToDefaultSelects('isActive', 'role', 'isVerified')
+  selected = defaultSelectsAnd('isActive', 'role', 'isVerified')
   const user = await User.findOne({ email: decoded.email }).select(selected)
 
   if (!user || !user.isActive) return next(INVALID_TOKEN_ERROR)

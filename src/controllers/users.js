@@ -37,7 +37,7 @@ exports.createUser = catchAsync(async ({ body, currentUser }, res) => {
 })
 
 exports.getUsers = catchAsync(async (req, res, next) => {
-  const selected = utils.inludeToDefaultSelects(
+  const selected = utils.defaultSelectsAnd(
     'role isLoggedIn isActive createdAt updatedAt'
   )
   const mongooseQuery = User.find().select(selected)
