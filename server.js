@@ -9,7 +9,8 @@ const server = app.listen(port, () =>
 
 module.exports = app
 
-// require('./src/cron-jobs/birthday_reminder').start()
+// START CRON JOB
+require('./src/cron-jobs/birthday_reminder').start()
 
 const shutDownGracefully = (code = 1) => {
   return (err, reason) => {
@@ -21,6 +22,7 @@ const shutDownGracefully = (code = 1) => {
   }
 }
 
+// Handle shutdown events
 process
   .on('SIGTERM', shutDownGracefully(0))
   .on('uncaughtException', shutDownGracefully())
