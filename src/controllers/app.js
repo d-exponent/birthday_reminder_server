@@ -22,12 +22,11 @@ exports.mountCustomResponse = (_, res, next) => {
 exports.mountRefreshTokenManager = (req, res, next) => {
   req.refreshTokenManager = function (email, logout = false) {
     const refreshToken = logout ? 'logout' : signToken(email, TOKENS.refresh)
-    const isSecure = this.secure
 
     res.cookie(env.cookieName, refreshToken, {
-      httpOnly: isSecure,
-      signed: isSecure,
-      secure: isSecure,
+      httpOnly: env.isProduction,
+      signed: env.isProduction,
+      secure: env.isProduction,
       maxAge: logout ? 1000 : env.refreshTokenExpires * 1000
     })
 

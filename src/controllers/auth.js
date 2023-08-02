@@ -83,7 +83,8 @@ exports.logout = catchAsync(async ({ currentUser }, res) => {
 })
 
 exports.getAccessToken = catchAsync(async (req, res, next) => {
-  const cookies = req.secure ? 'signedCookies' : 'cookies'
+  // const cookies = req.secure ? 'signedCookies' : 'cookies'
+  const cookies = env.isProduction ? 'signedCookies' : 'cookies'
   const refreshToken = req[cookies][env.cookieName]
 
   if (!refreshToken || !REGEX.jwtToken.test(refreshToken)) {
