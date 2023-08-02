@@ -32,9 +32,9 @@ const userSchema = new Schema(
         message: `{VALUE} is not a valid role`
       }
     },
-    accessCode: { type: String, select: false },
+    accessCode: { type: String, select: false, index: true },
     accessCodeExpires: { type: Date, select: false },
-    refreshToken: { type: String, select: false },
+    refreshToken: { type: String, select: false, index: true },
     isActive: { type: Boolean, default: true, select: false },
     isVerified: { type: Boolean, default: false, select: false },
     updatedAt: { type: Date, select: false },

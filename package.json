@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/d-exponent/birthday_remind.git",
   "dependencies": {
+    "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.3.0",
