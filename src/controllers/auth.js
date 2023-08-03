@@ -34,15 +34,39 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
   user.accessCode = generateAccessCode()
   user.accessCodeExpires = timeInMinutes(10)
   await user.save()
+  const emailer = new Email(user.name, user.email)
 
   let message = `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
-  try {
-    await new Email(user.name, user.email).sendAccessCode(user.accessCode)
+  error_msg = `Error sending ${user.email} an access code`
+  /***
+   * streaming responses (fire-and-forget functions) are not supported by Vercel
+   * Vercel seems to block nodemailer if the emailing action is not awaited with async/await
+   * This custom vercel implementation produces a slow response running up to seconds...
+   */
+  if (env.isVercel) {
+    try {
+      await emailer.sendAccessCode(user.accessCode)
+      res.customResponse({ message })
+    } catch (e) {
+      res.customResponse({ message: error_msg })
+      error_msg = e.message || error_msg
+      commitError(new EmailError(error_msg)).catch(e => console.error(e))
+    }
+  } else {
+    /**
+     * Faster response but without guarantee of success before notifying the client
+     * The client may have to try again if email is not received after a while
+     */
+
+    emailer.sendAccessCode(user.accessCode).catch(async () => {
+      try {
+        await emailer.sendAccessCode(user.accessCode) // TRY AGAIN
+      } catch (e) {
+        error_msg = e.message || error_msg
+        commitError(new EmailError(error_msg)).catch(e => console.error(e))
+      }
+    })
     res.customResponse({ message })
-  } catch (e) {
-    message = `Error sending ${user.email} an access code`
-    res.customResponse({ message })
-    commitError(new EmailError(e.message || message)).catch(e => console.error(e))
   }
 })
 

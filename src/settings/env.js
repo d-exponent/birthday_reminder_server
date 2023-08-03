@@ -36,5 +36,7 @@ module.exports = {
   accessTokenSecret: env.ACCESS_TOKEN_SECRET,
   refreshTokenSecret: env.REFRESH_TOKEN_SECRET,
   refreshTokenExpires: Number(env.REFRESH_TOKEN_EXPIRES),
-  accessTokenExpires: Number(env.ACCESS_TOKEN_EXPIRES)
+  accessTokenExpires: Number(env.ACCESS_TOKEN_EXPIRES),
+
+  isVercel: env.DEPLOYMENT === 'vercel'
 }
