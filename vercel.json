@@ -11,5 +11,9 @@
       "src": "/(.*)",
       "dest": "server.js"
     }
-  ]
+  ],
+  "crons": [{
+    "path": "/src/cron/vercel/bd_rm_emails",
+    "schedule": "0 5 * * *"
+  }]
 }
