@@ -2,18 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "server.js",
+      "src": "vercel-entry.js",
       "use": "@vercel/node"
     }
   ],
-"routes": [
+  "routes": [
     {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "vercel-entry.js"
     }
-  ],
-  "crons": [{
-    "path": "/src/cron/vercel/bd_rm_emails",
-    "schedule": "0 5 * * *"
-  }]
+  ]
 }

@@ -14,6 +14,7 @@ exports.STATUS = {
     badRequest: 400,
     methodNotAllowed: 405,
     badConnection: 502,
+    gatewayTimeOut: 504,
     serverError: 500
   }
 }
@@ -61,4 +62,4 @@ exports.BIRTHDAYS_IMAGES_DIR = path.join(
   'birthdays'
 )
 
-exports.MONGO_DB_CONNECTION = {}
+exports.MONGO_DB_CONNECTION = { isActive: false }

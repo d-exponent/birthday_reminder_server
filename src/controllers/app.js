@@ -22,16 +22,20 @@ exports.mountCustomResponse = (_, res, next) => {
 exports.mountRefreshTokenManager = (req, res, next) => {
   req.refreshTokenManager = function (email, logout = false) {
     const refreshToken = logout ? 'logout' : signToken(email, TOKENS.refresh)
+    const isSecure = env.isSecure(this)
 
     res.cookie(env.cookieName, refreshToken, {
-      httpOnly: env.isProduction,
-      signed: env.isProduction,
-      secure: env.isProduction,
+      httpOnly: isSecure,
+      signed: isSecure,
+      secure: isSecure,
       maxAge: logout ? 1000 : env.refreshTokenExpires * 1000
     })
-
     return refreshToken
   }
-
   next()
+}
+
+// To test successfull deployment to vercel. Might be deleted
+exports.showAppIsRunning = (_, res) => {
+  res.status(200).send('App is running')
 }

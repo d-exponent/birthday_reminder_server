@@ -39,7 +39,6 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
   let message = `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
   error_msg = `Error sending ${user.email} an access code`
   /***
-   * streaming responses (fire-and-forget functions) are not supported by Vercel
    * Vercel seems to block nodemailer if the emailing action is not awaited with async/await
    * This custom vercel implementation produces a slow response running up to seconds...
    */
@@ -52,22 +51,23 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
       error_msg = e.message || error_msg
       commitError(new EmailError(error_msg)).catch(e => console.error(e))
     }
-  } else {
-    /**
-     * Faster response but without guarantee of success before notifying the client
-     * The client may have to try again if email is not received after a while
-     */
-
-    emailer.sendAccessCode(user.accessCode).catch(async () => {
-      try {
-        await emailer.sendAccessCode(user.accessCode) // TRY AGAIN
-      } catch (e) {
-        error_msg = e.message || error_msg
-        commitError(new EmailError(error_msg)).catch(e => console.error(e))
-      }
-    })
-    res.customResponse({ message })
+    return
   }
+
+  /**
+   * Faster response (ms) but without guarantee of success before notifying the client
+   * The client may have to try again if email is not received after a while
+   */
+
+  emailer.sendAccessCode(user.accessCode).catch(async () => {
+    try {
+      await emailer.sendAccessCode(user.accessCode) // TRY AGAIN
+    } catch (e) {
+      error_msg = e.message || error_msg
+      commitError(new EmailError(error_msg)).catch(e => console.error(e))
+    }
+  })
+  res.customResponse({ message })
 })
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -107,8 +107,7 @@ exports.logout = catchAsync(async ({ currentUser }, res) => {
 })
 
 exports.getAccessToken = catchAsync(async (req, res, next) => {
-  // const cookies = req.secure ? 'signedCookies' : 'cookies'
-  const cookies = env.isProduction ? 'signedCookies' : 'cookies'
+  const cookies = env.isSecure(req) ? 'signedCookies' : 'cookies'
   const refreshToken = req[cookies][env.cookieName]
 
   if (!refreshToken || !REGEX.jwtToken.test(refreshToken)) {

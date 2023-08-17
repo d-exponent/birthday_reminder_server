@@ -17,7 +17,7 @@ module.exports = {
   dbUsername: env.DB_USERNAME,
 
   // Allowed Client Origin
-  allowedOrigins: env.ALLOWED_ORIGINS,
+  allowedOrigins: env.ALLOWED_ORIGINS?.replaceAll(' ', '').toLowerCase(),
 
   // For Nodemailer (PROD)
   appEmail: env.APP_EMAIL,
@@ -38,5 +38,14 @@ module.exports = {
   refreshTokenExpires: Number(env.REFRESH_TOKEN_EXPIRES),
   accessTokenExpires: Number(env.ACCESS_TOKEN_EXPIRES),
 
-  isVercel: env.DEPLOYMENT === 'vercel'
+  isVercel: env.DEPLOYMENT === 'vercel',
+
+  getMongoDbUri() {
+    return `mongodb+srv://${this.dbUsername}:${this.dbPassword}@cluster0.ntzames.mongodb.net/${this.db}?retryWrites=true&w=majority`
+  },
+
+  isSecure(request) {
+    const proto = request.get('x-forwarded-proto') || request.protocol
+    return proto === 'https'
+  }
 }

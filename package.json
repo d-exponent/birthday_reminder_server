@@ -12,14 +12,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/d-exponent/birthday_remind.git"
+    "url": "https://github.com/d-exponent/birthday_reminder_server.git"
   },
   "author": "Desmond Odion",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/d-exponent/birthday_remind.git"
+    "url": "https://github.com/d-exponent/birthday_reminder_server.git"
   },
-  "homepage": "https://github.com/d-exponent/birthday_remind.git",
+  "homepage": "https://github.com/d-exponent/birthday_reminder_server.git",
   "dependencies": {
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",

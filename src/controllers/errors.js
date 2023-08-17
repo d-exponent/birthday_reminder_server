@@ -17,7 +17,7 @@ const handleValidationError = ({ errors }) => {
 }
 
 const sendProductionError = (res, err) => {
-  let errCopy
+  let errCopy = null
 
   if (!err.isOperational) {
     errCopy = { ...err }
@@ -26,7 +26,7 @@ const sendProductionError = (res, err) => {
   }
 
   res.customResponse({ status: err.status, message: err.message }, RESPONSE.error)
-  if (errCopy) commitToDb(errCopy).catch(e => console.error(e))
+  errCopy && commitToDb(errCopy).catch(e => console.error(e))
 }
 
 exports.wildRoutesHandler = ({ method, originalUrl }, _, next) => {
@@ -54,16 +54,19 @@ exports.globalErrorHandler = (err, _, res, __) => {
           error = handleValidationError(error)
           break
         case 'JsonWebTokenError':
-          error_msg = 'Invalid Token, please login!'
-          error = new AppError(error_msg, ERR_STATUS.forbidden)
+          error = new AppError('Invalid Token, please login!', ERR_STATUS.forbidden)
           break
         case 'TokenExpiredError':
-          error_msg = 'Expired token, please login!'
-          error = new AppError(error_msg, ERR_STATUS.forbidden)
+          error = new AppError('Expired token, please login!', ERR_STATUS.forbidden)
           break
         case 'MongooseError':
-          console.log(error)
-          error = new AppError('Network error', ERR_STATUS.badConnection)
+          const dbError = new AppError('Network error', ERR_STATUS.badConnection)
+
+          if (error.message.includes('querySrv ETIMEOUT _mongodb._tcp')) {
+            dbError.status = ERR_STATUS.gatewayTimeOut
+          }
+
+          error = dbError
           break
         default:
           if (error.message.includes('no such file or directory')) {
@@ -75,7 +78,6 @@ exports.globalErrorHandler = (err, _, res, __) => {
 
     sendProductionError(res, error)
   } else {
-    console.error('🛑', err)
     res.customResponse(error, RESPONSE.error)
   }
 }
