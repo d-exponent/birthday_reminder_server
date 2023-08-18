@@ -1,6 +1,6 @@
 require('dotenv/config')
 
-const env = process.env
+const { env } = process
 
 module.exports = {
   // for birthday reminder job
@@ -17,7 +17,8 @@ module.exports = {
   dbUsername: env.DB_USERNAME,
 
   // Allowed Client Origin
-  allowedOrigins: env.ALLOWED_ORIGINS?.replaceAll(' ', '').toLowerCase(),
+  // 'fOo.bAr, foo.b ar, foobar' => ['foo.bar', 'foo.bar', 'foobar']
+  allowedOrigins: env.ALLOWED_ORIGINS?.replaceAll(' ', '').toLowerCase().split(','),
 
   // For Nodemailer (PROD)
   appEmail: env.APP_EMAIL,
@@ -45,6 +46,7 @@ module.exports = {
   },
 
   isSecure(request) {
+    // request.secure seems to be false on vercel deployment
     const proto = request.get('x-forwarded-proto') || request.protocol
     return proto === 'https'
   }
