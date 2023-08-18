@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 exports.EmailError = class EmailError extends Error {
   constructor(message) {
     super(message)

@@ -22,9 +22,21 @@ const rateLimitConfig = {
   legacyHeaders: false
 }
 
-const DBConnection = (_, __, next) => {
-  // connection error will be caught by catchAsync wrapper of the appropriate model's operation controller
-  connectDB().catch(e => console.log(e.message))
+const logConnectMsg = () => {
+  let firstRequest = 0
+
+  return msg => {
+    if (firstRequest === 0) {
+      // eslint-disable-next-line no-unused-expressions
+      msg.message ? console.error(msg.message) : console.log(msg)
+      firstRequest += 1
+    }
+  }
+}
+
+const logger = logConnectMsg()
+const DbConnector = (_, __, next) => {
+  connectDB().then(logger).catch(logger)
   next()
 }
 
@@ -32,11 +44,9 @@ module.exports = () => {
   app.use(cors({ origin: env.allowedOrigins }))
   app.get('/', appController.showAppIsRunning)
 
+  app.use(DbConnector)
   app.use(appController.mountCustomResponse)
   app.use(appController.mountRefreshTokenManager)
-
-  // eslint-disable-next-line no-unused-expressions
-  env.isVercel && app.use(DBConnection)
 
   // eslint-disable-next-line no-unused-expressions
   !env.isProduction && app.use(morgan('dev'))

@@ -1,14 +1,15 @@
+/* eslint-disable no-param-reassign */
 const env = require('../settings/env')
 const AppError = require('../utils/app-error')
 const commitToDb = require('../utils/commit-error')
 const { STATUS, RESPONSE } = require('../settings/constants')
 
 const ERR_STATUS = STATUS.error
-let error_msg
+let errorMsg
 
 const handleDuplicateFeilds = ({ keyValue }) => {
-  error_msg = `${Object.values(keyValue)[0]} already exists.`
-  return new AppError(error_msg, ERR_STATUS.serverError)
+  errorMsg = `${Object.values(keyValue)[0]} already exists.`
+  return new AppError(errorMsg, ERR_STATUS.serverError)
 }
 
 const handleValidationError = ({ errors }) => {
@@ -16,25 +17,33 @@ const handleValidationError = ({ errors }) => {
   return new AppError(`${validationMsgs.join('. ')}`, ERR_STATUS.badRequest)
 }
 
-const sendProductionError = (res, err) => {
+const sendProductionError = (res, error) => {
   let errCopy = null
 
-  if (!err.isOperational) {
-    errCopy = { ...err }
-    err.status = ERR_STATUS.serverError
-    err.message = "Something went wrong. It's not you, it's us😥"
+  if (!error.isOperational) {
+    errCopy = { ...error }
+    error.status = ERR_STATUS.serverError
+    error.message = "Something went wrong. It's not you, it's us😥"
   }
 
-  res.customResponse({ status: err.status, message: err.message }, RESPONSE.error)
+  res.customResponse(
+    { status: error.status, message: error.message },
+    RESPONSE.error
+  )
+
+  // eslint-disable-next-line no-unused-expressions
   errCopy && commitToDb(errCopy).catch(e => console.error(e))
 }
 
-exports.wildRoutesHandler = ({ method, originalUrl }, _, next) => {
-  error_msg = `${method.toUpperCase()} ${originalUrl} is not allowed on this server`
-  return next(new AppError(error_msg, ERR_STATUS.methodNotAllowed))
-}
+exports.wildRoutesHandler = ({ method, originalUrl }, _, next) =>
+  next(
+    new AppError(
+      `${method.toUpperCase()} ${originalUrl} is not allowed on this server`,
+      ERR_STATUS.methodNotAllowed
+    )
+  )
 
-exports.globalErrorHandler = (err, _, res, __) => {
+exports.globalErrorHandler = (err, _, res, next) => {
   let error = {
     ...err,
     message: err.message,
@@ -60,18 +69,12 @@ exports.globalErrorHandler = (err, _, res, __) => {
           error = new AppError('Expired token, please login!', ERR_STATUS.forbidden)
           break
         case 'MongooseError':
-          const dbError = new AppError('Network error', ERR_STATUS.badConnection)
-
-          if (error.message.includes('querySrv ETIMEOUT _mongodb._tcp')) {
-            dbError.status = ERR_STATUS.gatewayTimeOut
-          }
-
-          error = dbError
+          error = error.message.includes('querySrv ETIMEOUT _mongodb._tcp')
+            ? new AppError('Network error', ERR_STATUS.gatewayTimeOut)
+            : new AppError('Network error', ERR_STATUS.badConnection)
           break
         default:
-          if (error.message.includes('no such file or directory')) {
-            error = new AppError('The file was not found', ERR_STATUS.notFound)
-          }
+          error = { message: 'Something went wrong', status: 500 }
           break
       }
     }
@@ -80,4 +83,6 @@ exports.globalErrorHandler = (err, _, res, __) => {
   } else {
     res.customResponse(error, RESPONSE.error)
   }
+
+  return next()
 }

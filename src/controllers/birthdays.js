@@ -1,3 +1,5 @@
+/* eslint-disable no-param-reassign */
+/* eslint-disable consistent-return */
 const crypto = require('crypto')
 const fs = require('fs/promises')
 const multer = require('multer')
@@ -14,7 +16,7 @@ const {
   BIRTHDAYS_IMAGES_DIR
 } = require('../settings/constants')
 
-let error_msg
+let errorMessage
 
 const imagePath = imageName => `${BIRTHDAYS_IMAGES_DIR}/${imageName}`
 
@@ -23,8 +25,8 @@ exports.upload = multer({
   storage: multer.memoryStorage(),
   fileFilter: (_, file, cb) => {
     if (file.mimetype.startsWith('image')) return cb(null, true)
-    error_msg = `${file.mimetype} is an unsupported format. Please upload only images`
-    return cb(new AppError(error_msg, STATUS.error.badRequest), false)
+    errorMessage = `${file.mimetype} is an unsupported format. Please upload only images`
+    return cb(new AppError(errorMessage, STATUS.error.badRequest), false)
   }
 })
 
@@ -58,13 +60,13 @@ exports.deleteImage = catchAsync(
     ])
 
     if (fsSettled.status === 'rejected') {
-      error_msg = `🛑🛑, Error deleting ${imageName} from the file system on users request`
-      console.error(error_msg)
+      errorMessage = `🛑🛑, Error deleting ${imageName} from the file system on users request`
+      console.error(errorMessage)
     }
 
     if (birthdaySettled.status === 'rejected') {
-      error_msg = 'Something went wrong deleting the image. Please try again'
-      return next(new AppError(error_msg, STATUS.error.serverError))
+      errorMessage = 'Something went wrong deleting the image. Please try again'
+      return next(new AppError(errorMessage, STATUS.error.serverError))
     }
 
     res.customResponse(DELETE_RESPONSE)
@@ -82,10 +84,11 @@ exports.checkUserOwnsImage = catchAsync(async (req, _, next) => {
   })
 
   if (birthdays?.length === 0) {
-    error_msg = "you don't have permission to this resource"
-    return next(new AppError(error_msg, STATUS.error.forbidden))
+    errorMessage = "you don't have permission to this resource"
+    return next(new AppError(errorMessage, STATUS.error.forbidden))
   }
 
+  // eslint-disable-next-line prefer-destructuring
   req.birthday = birthdays[0]
   next()
 })
@@ -101,11 +104,11 @@ exports.addBirthday = catchAsync(async ({ params, body }, res) => {
 
 exports.getBirthdays = catchAsync(async ({ body, query: reqQuery }, res, next) => {
   let mongooseQuery = BirthDay.find(body)
-  error_msg = 'There are no birthdays at this time'
+  errorMessage = 'There are no birthdays at this time'
 
   if (body.owner) {
     mongooseQuery = mongooseQuery.select('-owner')
-    error_msg = 'You have no saved birthdays'
+    errorMessage = 'You have no saved birthdays'
   } else {
     mongooseQuery = mongooseQuery.populate({
       path: 'owner',
@@ -122,7 +125,7 @@ exports.getBirthdays = catchAsync(async ({ body, query: reqQuery }, res, next) =
   const birthdays = await query.mongooseQuery
 
   if (!birthdays.length) {
-    return next(new AppError(error_msg, STATUS.error.notFound))
+    return next(new AppError(errorMessage, STATUS.error.notFound))
   }
 
   res.customResponse({
@@ -133,12 +136,12 @@ exports.getBirthdays = catchAsync(async ({ body, query: reqQuery }, res, next) =
 
 exports.getBirthday = catchAsync(
   async ({ params: { id }, currentUser }, res, next) => {
-    const populateParmas = currentUser && currentUser.role == 'admin' ? 'owner' : ''
+    const populateParmas = currentUser && currentUser.role === 'admin' ? 'owner' : ''
     const birthday = await BirthDay.findById(id).populate(populateParmas)
 
     if (!birthday) {
-      error_msg = "The birthday doesn't exist"
-      return next(new AppError(error_msg, STATUS.error.notFound))
+      errorMessage = "The birthday doesn't exist"
+      return next(new AppError(errorMessage, STATUS.error.notFound))
     }
 
     res.customResponse({ data: birthday })

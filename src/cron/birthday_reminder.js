@@ -17,7 +17,7 @@ let error
 module.exports = cron.schedule(
   env.isProduction ? '0 0 */6 * * *' : '0 */20 * * * *',
   async () => {
-    console.log(`Scheduled Birthday Reminder started at: ${today}`)
+    console.log(`Scheduled Birthday Reminder started at: ${todaysDate}`)
 
     const page = env.page || 100
     const today = todaysDate()
@@ -25,6 +25,8 @@ module.exports = cron.schedule(
 
     let skip = 0
     const retryCount = 0
+
+
 
     while (retryCount < 3) {
       try {

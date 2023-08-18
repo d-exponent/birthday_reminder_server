@@ -1,3 +1,4 @@
+/* eslint-disable func-names */
 const { Schema, model } = require('mongoose')
 const { SCHEMA_OPTIONS, USER_ROLES, REGEX } = require('../settings/constants')
 const { titleCaseNames } = require('./common')
@@ -26,7 +27,7 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      default: USER_ROLES[0], //user
+      default: USER_ROLES[0], // user
       enum: {
         values: USER_ROLES,
         message: `{VALUE} is not a valid role`
@@ -61,12 +62,13 @@ userSchema.pre(/^find/, function (next) {
 userSchema.pre('findOneAndDelete', async function (next) {
   const query = this.getQuery()
   const userToDelete = await this.model.findOne(query)
-  this._userId = userToDelete['_id']
+  // eslint-disable-next-line no-underscore-dangle
+  this['_userId'] = userToDelete['_id']
   next()
 })
 
 userSchema.post('findOneAndDelete', async function () {
-  await Birthday.deleteMany({ owner: this._userId })
+  await Birthday.deleteMany({ owner: this['_userId'] })
 })
 
 module.exports = model('User', userSchema)

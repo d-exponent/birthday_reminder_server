@@ -1,5 +1,5 @@
-const env = require('../settings/env')
 const jwt = require('jsonwebtoken')
+const env = require('../settings/env')
 const { TOKENS } = require('../settings/constants')
 
 const asssertPositiveIntegerOrZero = (num, name) => {
@@ -10,7 +10,7 @@ const asssertPositiveIntegerOrZero = (num, name) => {
 exports.generateAccessCode = (length = 4) => {
   asssertPositiveIntegerOrZero(length, 'length')
   if (length < 4 || length > 8) throw TypeError('length must between 4 to 8')
-  return [...Array(length)].map(_ => Math.round(Math.random() * 9)).join('')
+  return [...Array(length)].map(() => Math.round(Math.random() * 9)).join('')
 }
 
 exports.timeInMinutes = (minutes = 0) => {
@@ -28,7 +28,5 @@ exports.signToken = (email, type = TOKENS.access) => {
   const isAccessToken = type === TOKENS.access
   const secret = isAccessToken ? env.accessTokenSecret : env.refreshTokenSecret
   const expiresIn = isAccessToken ? env.accessTokenExpires : env.refreshTokenExpires
-
-  const token = jwt.sign({ email }, secret, { expiresIn })
-  return token
+  return jwt.sign({ email }, secret, { expiresIn })
 }

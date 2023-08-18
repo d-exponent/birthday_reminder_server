@@ -6,5 +6,5 @@ exports.titleCaseNames = name => {
 
   return names.length === 1
     ? titleCaseText(names[0])
-    : names.map(name => titleCaseText(name)).join(' ')
+    : names.map(n => titleCaseText(n)).join(' ')
 }

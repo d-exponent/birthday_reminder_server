@@ -1,9 +1,10 @@
+/* eslint-disable no-param-reassign */
 const { STATUS, RESPONSE, TOKENS } = require('../settings/constants')
 const { signToken } = require('../utils/auth')
 const env = require('../settings/env')
 
 exports.mountCustomResponse = (_, res, next) => {
-  res.customResponse = function (body, type = RESPONSE.success) {
+  res.customResponse = function customResponse(body, type = RESPONSE.success) {
     if (type.match(/error/i)) {
       body.status = body.status || STATUS.error.serverError
       body.success = false
@@ -20,7 +21,7 @@ exports.mountCustomResponse = (_, res, next) => {
 }
 
 exports.mountRefreshTokenManager = (req, res, next) => {
-  req.refreshTokenManager = function (email, logout = false) {
+  req.refreshTokenManager = function refreshTokenManager(email, logout = false) {
     const refreshToken = logout ? 'logout' : signToken(email, TOKENS.refresh)
     const isSecure = env.isSecure(this)
 

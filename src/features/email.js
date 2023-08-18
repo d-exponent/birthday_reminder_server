@@ -1,6 +1,8 @@
 const nodemailer = require('nodemailer')
 const env = require('../settings/env')
 
+const isExistAndShow = (param, message) => (param ? `${message}: ${param}` : '')
+
 module.exports = class Email {
   appEmail = env.appEmail
 
@@ -76,8 +78,8 @@ module.exports = class Email {
       This is a reminder to wish them a happy birthday
 
       ${phone || email ? "Celebrant's Details : " : ''}
-      ${phone ? 'Phone Number: ' + phone : ''}
-      ${email ? 'Email Address: ' + email : ''}
+      ${isExistAndShow(phone, 'Phone Number: ')}
+      ${isExistAndShow(email, 'Email Address: ')}
 
       Regards,
       Eclipse Birthday Reminder

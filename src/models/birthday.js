@@ -1,3 +1,4 @@
+/* eslint-disable func-names */
 const { Schema, model } = require('mongoose')
 const { titleCaseNames } = require('./common')
 
