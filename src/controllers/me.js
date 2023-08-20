@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
-const AppError = require('../utils/app-error')
+const AppError = require('../lib/app-error')
 const Birthday = require('../models/birthday')
-const catchAsync = require('../utils/catch-async')
+const catchAsync = require('../lib/catch-async')
 const { STATUS } = require('../settings/constants')
 
 let errorMessage
@@ -11,7 +11,7 @@ exports.deleteMe = catchAsync(async (req, res) => {
   req.currentUser.isVerified = false
   await req.currentUser.save()
 
-  res.customResponse({
+  res.sendResponse({
     status: STATUS.success.noContent,
     message: ''
   })

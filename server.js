@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 const env = require('./src/settings/env')
 const app = require('./src/app')
 
-const PORT = env.port
+const PORT = env.port || 5000
 
 const server = app().listen(PORT, () =>
   console.log(`🤖[SERVER] is listening on port`, PORT)

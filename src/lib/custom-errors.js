@@ -15,7 +15,9 @@ exports.UserError = class UserError extends Error {
   }
 }
 
-exports.BirthdayReminderJobError = class BirthdayReminderJobError extends Error {
+exports.BirthdayReminderJobError = class BirthdayReminderJobError extends (
+  Error
+) {
   constructor(message) {
     super(message)
     this.name = 'BirthdayReminderJobError'

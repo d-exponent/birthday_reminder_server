@@ -2,7 +2,7 @@ const {
   generateAccessCode,
   timeInMinutes,
   signToken
-} = require('../../src/utils/auth')
+} = require('../../src/lib/auth')
 const { REGEX } = require('../../src/settings/constants')
 
 describe('generateAccessCode funtion', () => {

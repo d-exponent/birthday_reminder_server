@@ -1,9 +1,9 @@
 const {
   DEFAULT_SELECTS,
   defaultSelectsAnd,
-  assignOnly,
+  filterOnly,
   excludeNonDefaults
-} = require('../../src/utils/user-doc')
+} = require('../../src/lib/utils')
 
 const MOCK_DOCUMENT = { name: 'foo', age: 15, foo: 'foo', bar: 'bar' }
 const MOCK_USER = {
@@ -39,17 +39,17 @@ describe('defaultSelectsAnd function', () => {
   })
 })
 
-describe('assignOnly function', () => {
+describe('filterOnly function', () => {
   describe('return', () => {
     test('', () => {
-      expect(assignOnly(MOCK_DOCUMENT, 'foo bar')).toStrictEqual({
+      expect(filterOnly(MOCK_DOCUMENT, 'foo bar')).toStrictEqual({
         foo: 'foo',
         bar: 'bar'
       })
     })
 
     test(`object properties with keys in ${DEFAULT_SELECTS}`, () => {
-      expect(assignOnly(MOCK_DOCUMENT, 'foo', 'bar', 'name')).toStrictEqual({
+      expect(filterOnly(MOCK_DOCUMENT, 'foo', 'bar', 'name')).toStrictEqual({
         name: 'foo',
         foo: 'foo',
         bar: 'bar'
@@ -57,17 +57,21 @@ describe('assignOnly function', () => {
     })
 
     test('empty object if no arguments are passed', () => {
-      expect(assignOnly(MOCK_DOCUMENT)).toStrictEqual({})
+      expect(filterOnly(MOCK_DOCUMENT)).toStrictEqual({})
     })
 
     test('ignore falsy arguments', () => {
-      expect(assignOnly(MOCK_DOCUMENT, null, undefined, 0, [], '')).toStrictEqual({})
+      expect(
+        filterOnly(MOCK_DOCUMENT, null, undefined, 0, [], '')
+      ).toStrictEqual({})
     })
   })
 })
 
 describe('excludeNonDefaults function', () => {
   test(`return object properties with keys in ${DEFAULT_SELECTS}`, () => {
-    expect(excludeNonDefaults({ ...MOCK_USER, foo: 'foo' })).toStrictEqual(MOCK_USER)
+    expect(excludeNonDefaults({ ...MOCK_USER, foo: 'foo' })).toStrictEqual(
+      MOCK_USER
+    )
   })
 })

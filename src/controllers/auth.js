@@ -3,12 +3,12 @@ const jwt = require('jsonwebtoken')
 const env = require('../settings/env')
 const User = require('../models/user')
 const Email = require('../features/email')
-const AppError = require('../utils/app-error')
-const catchAsync = require('../utils/catch-async')
-const commitError = require('../utils/commit-error')
-const { EmailError } = require('../utils/custom-errors')
-const { defaultSelectsAnd, excludeNonDefaults } = require('../utils/user-doc')
-const { generateAccessCode, timeInMinutes, signToken } = require('../utils/auth')
+const AppError = require('../lib/app-error')
+const catchAsync = require('../lib/catch-async')
+const commitError = require('../lib/commit-error')
+const { EmailError } = require('../lib/custom-errors')
+const { defaultSelectsAnd, excludeNonDefaults } = require('../lib/utils')
+const { generateAccessCode, timeInMinutes, signToken } = require('../lib/auth')
 const {
   STATUS,
   REGEX,
@@ -20,7 +20,10 @@ let errorMessage
 let selected
 
 const UNAUTHORIZED = STATUS.error.unauthorized
-const INVALID_TOKEN_ERROR = new AppError('Invalid auth credentials', UNAUTHORIZED)
+const INVALID_TOKEN_ERROR = new AppError(
+  'Invalid auth credentials',
+  UNAUTHORIZED
+)
 const LOGIN_ERROR = new AppError('Please log in', UNAUTHORIZED)
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
@@ -47,11 +50,13 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
   if (env.isVercel) {
     try {
       await emailer.sendAccessCode(user.accessCode)
-      res.customResponse({ message })
+      res.sendResponse({ message })
     } catch (err) {
-      res.customResponse({ message: errorMessage })
+      res.sendResponse({ message: errorMessage })
       errorMessage = err.message || errorMessage
-      commitError(new EmailError(errorMessage)).catch(e => console.error(e.message))
+      commitError(new EmailError(errorMessage)).catch(e =>
+        console.error(e.message)
+      )
     }
     return
   }
@@ -69,7 +74,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
       commitError(new EmailError(errorMessage)).catch(e => console.error(e))
     }
   })
-  res.customResponse({ message })
+  res.sendResponse({ message })
 })
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -89,7 +94,7 @@ exports.login = catchAsync(async (req, res, next) => {
   user.refreshToken = req.refreshTokenManager(user.email)
   await user.save()
 
-  res.customResponse({
+  res.sendResponse({
     accessToken: signToken(user.email),
     data: excludeNonDefaults(user)
   })
@@ -105,20 +110,21 @@ exports.login = catchAsync(async (req, res, next) => {
 
 exports.logout = catchAsync(async ({ currentUser }, res) => {
   await currentUser.save()
-  res.customResponse(DELETE_RESPONSE)
+  res.sendResponse(DELETE_RESPONSE)
 })
 
 exports.getAccessToken = catchAsync(async (req, res, next) => {
-  const cookies = env.isSecure(req) ? 'signedCookies' : 'cookies'
+  const cookies = req.isSecure ? 'signedCookies' : 'cookies'
   const refreshToken = req[cookies][env.cookieName]
 
-  if (!refreshToken || !REGEX.jwtToken.test(refreshToken)) {
+  if (!refreshToken || !REGEX.jwtToken.test(refreshToken))
     return next(INVALID_TOKEN_ERROR)
-  }
 
   selected = defaultSelectsAnd('refreshToken')
   const user = await User.findOne({ refreshToken }).select(selected)
-  if (!user || user.refreshToken !== refreshToken) return next(INVALID_TOKEN_ERROR)
+
+  if (!user || user.refreshToken !== refreshToken)
+    return next(INVALID_TOKEN_ERROR)
 
   await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
 
@@ -126,7 +132,7 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
   user.refreshToken = req.refreshTokenManager(user.email)
   await user.save()
 
-  res.customResponse({
+  res.sendResponse({
     accessToken: signToken(user.email),
     status: STATUS.success.created
   })
@@ -153,17 +159,18 @@ exports.protect = catchAsync(async (req, _, next) => {
   next()
 })
 
-exports.setUserForlogout = async (req, _, next) => {
+exports.setUserForlogout = async (req, res, next) => {
   req.currentUser.refreshToken = undefined
   req.currentUser.accessCode = undefined
   req.currentUser.accessCodeExpires = undefined
-  req.refreshTokenManager('', true)
+  res.clearCooki(env.cookieName, { path: '/' })
   next()
 }
 
 exports.permit = (...args) => {
   // Ensure at least one role is passed
-  if (!args.length) throw new Error('restrictTo requires at least one valid role')
+  if (!args.length)
+    throw new Error('restrictTo requires at least one valid role')
 
   // Ensure only valid roles  are passed
   args.forEach(arg => {
@@ -183,7 +190,7 @@ exports.permit = (...args) => {
 }
 
 // -------------  HELPER MIDDLEWARE
-exports.validateAccessCodeSetCustomQuery = (req, _, next) => {
+exports.testAccessCodeAnatomy = (req, _, next) => {
   const { customQuery, params, originalUrl } = req
 
   if (!REGEX.accessCode.test(params.accessCode)) {

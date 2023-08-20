@@ -1,5 +1,10 @@
 *.pug
+*.pem
+*.env
+*.log
+*.png
+
 .gitignore
 .env
-
 .prettierignore
+

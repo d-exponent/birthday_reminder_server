@@ -1,14 +1,16 @@
 {
   "name": "ecl_birthday_reminder",
   "version": "1.0.0",
-  "description": "Express js server for react js frontend",
+  "description": "Node js server from birthday reminder client application",
   "main": "server.js",
   "scripts": {
-    "test": "cross-env NODE_ENV=test jest --testTimeout=9000",
-    "dev": "cross-env NODE_ENV=development nodemon server.js",
     "start": "node server.js",
+    "test": "cross-env NODE_ENV=test jest --testTimeout=9000",
+    "pretty": "prettier --config .prettierrc ./**/* --write",
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
     "prod": "cross-env NODE_ENV=production nodemon server.js",
-    "pretty": "prettier --config .prettierrc ./**/* --write"
+    "prod-https": "cross-env NODE_ENV=production nodemon https-server.js",
+    "dev-https": "cross-env NODE_ENV=development nodemon https-server.js"
   },
   "repository": {
     "type": "git",

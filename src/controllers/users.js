@@ -1,12 +1,12 @@
 /* eslint-disable no-param-reassign */
 const mongoose = require('mongoose')
 const User = require('../models/user')
-const AppError = require('../utils/app-error')
-const catchAsync = require('../utils/catch-async')
-const BuildMongooseQuery = require('../utils/query-builder')
+const AppError = require('../lib/app-error')
+const catchAsync = require('../lib/catch-async')
+const BuildMongooseQuery = require('../lib/query-builder')
 const Email = require('../features/email')
-const utils = require('../utils/user-doc')
-const { generateAccessCode, timeInMinutes } = require('../utils/auth')
+const utils = require('../lib/utils')
+const { generateAccessCode, timeInMinutes } = require('../lib/auth')
 const {
   STATUS,
   REGEX,
@@ -30,7 +30,7 @@ exports.createUser = catchAsync(async ({ body, currentUser }, res) => {
     message = `One time login password has been sent to ${user.email}`
   }
 
-  res.customResponse({
+  res.sendResponse({
     status: STATUS.success.created,
     message,
     data
@@ -50,7 +50,7 @@ exports.getUsers = catchAsync(async (req, res, next) => {
   const users = await query.mongooseQuery.exec()
   if (!users) return next(NOT_FOUND_ERR)
 
-  res.customResponse({
+  res.sendResponse({
     results: users.length,
     data: users
   })
@@ -60,20 +60,24 @@ exports.getUser = catchAsync(async ({ customQuery }, res, next) => {
   const user = await User.findOne(customQuery).exec()
   if (!user) return next(NOT_FOUND_ERR)
 
-  res.customResponse({
+  res.sendResponse({
     data: user
   })
 })
 
 exports.updateUser = catchAsync(async ({ customQuery, body }, res, next) => {
-  const user = await User.findOneAndUpdate(customQuery, body, FIND_UPDATE_OPTIONS)
+  const user = await User.findOneAndUpdate(
+    customQuery,
+    body,
+    FIND_UPDATE_OPTIONS
+  )
   if (!user) return next(NOT_FOUND_ERR)
-  res.customResponse({ data: user })
+  res.sendResponse({ data: user })
 })
 
 exports.deleteUser = catchAsync(async ({ customQuery }, res) => {
   await User.findOneAndDelete(customQuery)
-  res.customResponse(DELETE_RESPONSE)
+  res.sendResponse(DELETE_RESPONSE)
 })
 
 //              -----   HELPER MIDDLEWARES ----     //

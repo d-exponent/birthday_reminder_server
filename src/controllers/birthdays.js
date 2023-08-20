@@ -5,9 +5,9 @@ const fs = require('fs/promises')
 const multer = require('multer')
 const sharp = require('sharp')
 const BirthDay = require('../models/birthday')
-const AppError = require('../utils/app-error')
-const catchAsync = require('../utils/catch-async')
-const BuildMongooseQuery = require('../utils/query-builder')
+const AppError = require('../lib/app-error')
+const catchAsync = require('../lib/catch-async')
+const BuildMongooseQuery = require('../lib/query-builder')
 
 const {
   STATUS,
@@ -69,7 +69,7 @@ exports.deleteImage = catchAsync(
       return next(new AppError(errorMessage, STATUS.error.serverError))
     }
 
-    res.customResponse(DELETE_RESPONSE)
+    res.sendResponse(DELETE_RESPONSE)
   }
 )
 
@@ -96,47 +96,50 @@ exports.checkUserOwnsImage = catchAsync(async (req, _, next) => {
 // FILE CONTROLLERS AND MIDDLEWARES END **
 
 exports.addBirthday = catchAsync(async ({ params, body }, res) => {
-  res.customResponse({
+  res.sendResponse({
     status: STATUS.success.created,
     data: await BirthDay.create({ ...body, owner: params.ownerId })
   })
 })
 
-exports.getBirthdays = catchAsync(async ({ body, query: reqQuery }, res, next) => {
-  let mongooseQuery = BirthDay.find(body)
-  errorMessage = 'There are no birthdays at this time'
+exports.getBirthdays = catchAsync(
+  async ({ body, query: reqQuery }, res, next) => {
+    let mongooseQuery = BirthDay.find(body)
+    errorMessage = 'There are no birthdays at this time'
 
-  if (body.owner) {
-    mongooseQuery = mongooseQuery.select('-owner')
-    errorMessage = 'You have no saved birthdays'
-  } else {
-    mongooseQuery = mongooseQuery.populate({
-      path: 'owner',
-      select: 'name email'
+    if (body.owner) {
+      mongooseQuery = mongooseQuery.select('-owner')
+      errorMessage = 'You have no saved birthdays'
+    } else {
+      mongooseQuery = mongooseQuery.populate({
+        path: 'owner',
+        select: 'name email'
+      })
+    }
+
+    const query = new BuildMongooseQuery(mongooseQuery, reqQuery)
+      .filter()
+      .fields()
+      .page()
+      .sort()
+
+    const birthdays = await query.mongooseQuery
+
+    if (!birthdays.length) {
+      return next(new AppError(errorMessage, STATUS.error.notFound))
+    }
+
+    res.sendResponse({
+      results: birthdays.length,
+      data: birthdays
     })
   }
-
-  const query = new BuildMongooseQuery(mongooseQuery, reqQuery)
-    .filter()
-    .fields()
-    .page()
-    .sort()
-
-  const birthdays = await query.mongooseQuery
-
-  if (!birthdays.length) {
-    return next(new AppError(errorMessage, STATUS.error.notFound))
-  }
-
-  res.customResponse({
-    results: birthdays.length,
-    data: birthdays
-  })
-})
+)
 
 exports.getBirthday = catchAsync(
   async ({ params: { id }, currentUser }, res, next) => {
-    const populateParmas = currentUser && currentUser.role === 'admin' ? 'owner' : ''
+    const populateParmas =
+      currentUser && currentUser.role === 'admin' ? 'owner' : ''
     const birthday = await BirthDay.findById(id).populate(populateParmas)
 
     if (!birthday) {
@@ -144,17 +147,17 @@ exports.getBirthday = catchAsync(
       return next(new AppError(errorMessage, STATUS.error.notFound))
     }
 
-    res.customResponse({ data: birthday })
+    res.sendResponse({ data: birthday })
   }
 )
 
 exports.updateBirthday = catchAsync(async ({ body, params: { id } }, res) => {
-  res.customResponse({
+  res.sendResponse({
     data: await BirthDay.findByIdAndUpdate(id, body, FIND_UPDATE_OPTIONS)
   })
 })
 
 exports.deleteBirthday = catchAsync(async ({ params: { id } }, res) => {
   await BirthDay.findByIdAndDelete(id)
-  res.customResponse(DELETE_RESPONSE)
+  res.sendResponse(DELETE_RESPONSE)
 })

@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 const env = require('../settings/env')
-const AppError = require('../utils/app-error')
-const commitToDb = require('../utils/commit-error')
+const AppError = require('../lib/app-error')
+const commitToDb = require('../lib/commit-error')
 const { STATUS, RESPONSE } = require('../settings/constants')
 
 const ERR_STATUS = STATUS.error
@@ -26,7 +26,7 @@ const sendProductionError = (res, error) => {
     error.message = "Something went wrong. It's not you, it's us😥"
   }
 
-  res.customResponse(
+  res.sendResponse(
     { status: error.status, message: error.message },
     RESPONSE.error
   )
@@ -63,10 +63,16 @@ exports.globalErrorHandler = (err, _, res, next) => {
           error = handleValidationError(error)
           break
         case 'JsonWebTokenError':
-          error = new AppError('Invalid Token, please login!', ERR_STATUS.forbidden)
+          error = new AppError(
+            'Invalid Token, please login!',
+            ERR_STATUS.forbidden
+          )
           break
         case 'TokenExpiredError':
-          error = new AppError('Expired token, please login!', ERR_STATUS.forbidden)
+          error = new AppError(
+            'Expired token, please login!',
+            ERR_STATUS.forbidden
+          )
           break
         case 'MongooseError':
           error = error.message.includes('querySrv ETIMEOUT _mongodb._tcp')
@@ -81,7 +87,7 @@ exports.globalErrorHandler = (err, _, res, next) => {
 
     sendProductionError(res, error)
   } else {
-    res.customResponse(error, RESPONSE.error)
+    res.sendResponse(error, RESPONSE.error)
   }
 
   return next()

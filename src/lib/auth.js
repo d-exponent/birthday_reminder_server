@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
 const env = require('../settings/env')
-const { TOKENS } = require('../settings/constants')
+const AppError = require('./app-error')
+const { TOKENS, STATUS, CORS_ORIGIN_ERROR } = require('../settings/constants')
 
 const asssertPositiveIntegerOrZero = (num, name) => {
   if (typeof num !== 'number' || num < 0 || num.toString().includes('.'))
@@ -27,6 +28,18 @@ exports.signToken = (email, type = TOKENS.access) => {
 
   const isAccessToken = type === TOKENS.access
   const secret = isAccessToken ? env.accessTokenSecret : env.refreshTokenSecret
-  const expiresIn = isAccessToken ? env.accessTokenExpires : env.refreshTokenExpires
+  const expiresIn = isAccessToken
+    ? env.accessTokenExpires
+    : env.refreshTokenExpires
   return jwt.sign({ email }, secret, { expiresIn })
+}
+
+exports.CORSOriginSetter = (origin, callback) => {
+  // Mobile apps, Curl, Postman
+  if (!origin) return callback(null, true)
+
+  // Browsers
+  if (env.allowedOrigins.indexOf(origin) === -1)
+    callback(new AppError(CORS_ORIGIN_ERROR, STATUS.error.forbidden), false)
+  else callback(null, true)
 }

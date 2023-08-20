@@ -8,17 +8,17 @@ module.exports = {
 
   // App server settings
   nodeEnv: env.NODE_ENV,
-  port: env.PORT || '5000',
-  isProduction: env.NODE_ENV === 'production',
+  port: env.PORT,
 
   // Database
   db: env.DB,
   dbPassword: env.DB_PASSWORD,
   dbUsername: env.DB_USERNAME,
 
-  // Allowed Client Origin
   // 'fOo.bAr, foo.b ar, foobar' => ['foo.bar', 'foo.bar', 'foobar']
-  allowedOrigins: env.ALLOWED_ORIGINS?.replaceAll(' ', '').toLowerCase().split(','),
+  allowedOrigins: env.ALLOWED_ORIGINS?.replaceAll(' ', '')
+    .toLowerCase()
+    .split(','),
 
   // For Nodemailer (PROD)
   appEmail: env.APP_EMAIL,
@@ -37,17 +37,29 @@ module.exports = {
   accessTokenSecret: env.ACCESS_TOKEN_SECRET,
   refreshTokenSecret: env.REFRESH_TOKEN_SECRET,
   refreshTokenExpires: Number(env.REFRESH_TOKEN_EXPIRES),
-  accessTokenExpires: Number(env.ACCESS_TOKEN_EXPIRES),
 
   isVercel: env.DEPLOYMENT === 'vercel',
 
-  getMongoDbUri() {
+  get mongoDBUri() {
     return `mongodb+srv://${this.dbUsername}:${this.dbPassword}@cluster0.ntzames.mongodb.net/${this.db}?retryWrites=true&w=majority`
   },
 
-  isSecure(request) {
-    // request.secure seems to be false on vercel deployment
-    const proto = request.get('x-forwarded-proto') || request.protocol
-    return proto === 'https'
+  get isProduction() {
+    return this.nodeEnv === 'production'
+  },
+
+  get accessTokenExpires() {
+    /**
+     * PROBLEM:
+     * Client and server domains are decoupled creating issues with cookie authentication
+     * Cookie can only be shared cross-domian over https via sameSite:"None" secure. (CORS) -> allowed-origin: client-domain.com
+     * This makes it impossible to share cross domain cookies in Developement on localhost in the browser
+     * CURRENT SOLUTION:
+     * Make the access token long live in developemnt and ditch cookie startegy
+     * Commence cookie strategy on client and server over https (deployment)
+     */
+    return this.isProduction
+      ? Number(env.ACCESS_TOKEN_EXPIRES)
+      : Number(env.ACCESS_TOKEN_EXPIRES) * 100
   }
 }

@@ -1,4 +1,4 @@
-const connectDb = require('../../src/utils/db-connect')
+const connectDb = require('../../src/lib/db-connect')
 const mongoose = require('mongoose')
 const { MONGO_DB_CONNECTION } = require('../../src/settings/constants')
 
@@ -14,7 +14,9 @@ afterEach(async () => {
 
 describe('mongodb connection function', () => {
   test('establish a new connection', async () => {
-    await expect(connectDb()).resolves.toBe('Connected to mongoDb successfully👍')
+    await expect(connectDb()).resolves.toBe(
+      'Connected to mongoDb successfully👍'
+    )
   })
 
   test('abort new connection if one already exists', async () => {
@@ -31,7 +33,9 @@ describe('mongodb connection function', () => {
     })
 
     test('incomplete/incorrect object parameter', async () => {
-      await expect(connectDb({ dbPassword: 'foo', db: '' })).rejects.toMatch(regex)
+      await expect(connectDb({ dbPassword: 'foo', db: '' })).rejects.toMatch(
+        regex
+      )
     })
   })
 })

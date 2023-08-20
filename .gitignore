@@ -1,7 +1,10 @@
 *.log
 *.png
-.png
 *.env
+*.pug
+*.pem
+
+.png
 npm-debug.log*
 
 # Dependency directories

@@ -20,7 +20,7 @@ router.get(
 router.get(
   '/login/:user_email_phone_id/:accessCode',
   userController.setCustomQueryFromParams,
-  authController.validateAccessCodeSetCustomQuery,
+  authController.testAccessCodeAnatomy,
   authController.login
 )
 

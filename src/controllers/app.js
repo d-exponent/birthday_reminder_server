@@ -1,10 +1,41 @@
 /* eslint-disable no-param-reassign */
-const { STATUS, RESPONSE, TOKENS } = require('../settings/constants')
-const { signToken } = require('../utils/auth')
 const env = require('../settings/env')
+const connect = require('../lib/db-connect')
+const { signToken } = require('../lib/auth')
+const { defineGetter } = require('../lib/utils')
+const { STATUS, RESPONSE, TOKENS } = require('../settings/constants')
 
-exports.mountCustomResponse = (_, res, next) => {
-  res.customResponse = function customResponse(body, type = RESPONSE.success) {
+exports.assignPropsOnRequest = (req, res, next) => {
+  defineGetter(req, 'isSecure', () =>
+    env.isVercel && env.isProduction ? true : req.secure
+  )
+
+  defineGetter(req, 'domain', () => `${req.protocol}://${req.get('host')}`)
+
+  req.refreshTokenManager = email => {
+    const refreshToken = signToken(email, TOKENS.refresh)
+    const { isSecure, domain } = req
+
+    // CORS and Set-Cookie has been such a pain.
+    const cookieConfig = {
+      domain,
+      path: '/',
+      httpOnly: isSecure,
+      secure: true,
+      signed: isSecure,
+      sameSite: false,
+      maxAge: env.refreshTokenExpires * 1000
+    }
+
+    res.cookie(env.cookieName, refreshToken, cookieConfig)
+
+    return refreshToken
+  }
+  next()
+}
+
+exports.assignPropsOnResponse = (_, res, next) => {
+  res.sendResponse = (body, type = RESPONSE.success) => {
     if (type.match(/error/i)) {
       body.status = body.status || STATUS.error.serverError
       body.success = false
@@ -14,29 +45,16 @@ exports.mountCustomResponse = (_, res, next) => {
     } else {
       throw new TypeError('type parameter must be either "error" or "success"')
     }
-
-    this.status(body.status).json({ ...body, status: undefined })
+    res.status(body.status).json({ ...body, status: undefined })
   }
+
   next()
 }
 
-exports.mountRefreshTokenManager = (req, res, next) => {
-  req.refreshTokenManager = function refreshTokenManager(email, logout = false) {
-    const refreshToken = logout ? 'logout' : signToken(email, TOKENS.refresh)
-    const isSecure = env.isSecure(this)
+// Convinience Method For Vercel Deployment screen
+exports.showAppIsRunning = (_, res) => res.status(200).send('App is running')
 
-    res.cookie(env.cookieName, refreshToken, {
-      httpOnly: isSecure,
-      signed: isSecure,
-      secure: isSecure,
-      maxAge: logout ? 1000 : env.refreshTokenExpires * 1000
-    })
-    return refreshToken
-  }
+exports.initiateDatabaseConnection = (_, __, next) => {
+  connect().then(connect.logFirstConnection).catch(connect.logFirstConnection)
   next()
-}
-
-// To test successfull deployment to vercel. Might be deleted
-exports.showAppIsRunning = (_, res) => {
-  res.status(200).send('App is running')
 }

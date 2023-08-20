@@ -1,6 +1,6 @@
 exports.DEFAULT_SELECTS = 'name phone email id role'
 
-exports.excludeNonDefaults = user => this.assignOnly(user, this.DEFAULT_SELECTS)
+exports.excludeNonDefaults = user => this.filter(user, this.DEFAULT_SELECTS)
 
 exports.defaultSelectsAnd = (...args) => {
   const reducer = (accumulator, select) => {
@@ -13,19 +13,27 @@ exports.defaultSelectsAnd = (...args) => {
   return uniqueSelects.join(' ')
 }
 
-exports.assignOnly = (doc, ...args) => {
-  const assignDefined = (acc, key) => {
+// TODO: Find a better name
+exports.filter = (doc, ...args) => {
+  const getDefined = (acc, key) => {
     if (doc[key] !== undefined) acc[key] = doc[key]
   }
 
   return args.reduce((accumulator, current) => {
     if (typeof current === 'string' && current.length) {
       if (current.includes(' ')) {
-        current.split(' ').forEach(c => assignDefined(accumulator, c))
+        current.split(' ').forEach(c => getDefined(accumulator, c))
       } else {
-        assignDefined(accumulator, current)
+        getDefined(accumulator, current)
       }
     }
     return accumulator
   }, {})
+}
+
+exports.defineGetter = (obj, name, getter) => {
+  Object.defineProperty(obj, name, {
+    configurable: false,
+    get: getter
+  })
 }
