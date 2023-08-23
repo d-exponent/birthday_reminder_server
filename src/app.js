@@ -38,9 +38,33 @@ module.exports = () => {
   // eslint-disable-next-line no-unused-expressions
   !env.isProduction && app.use(morgan('dev'))
 
-  app.use(appController.initiateDatabaseConnection)
+  app.use(appController.initDB)
   app.use(appController.assignPropsOnRequest)
   app.use(appController.assignPropsOnResponse)
+
+  app.get('/api/v1/settings', (req, res) => {
+    res.sendResponse({
+      request: {
+        secure: req.secure,
+        protocol: req.protocol,
+        isSecure: req.isSecure,
+        domain: req.domain
+      },
+      env: {
+        ...env,
+        production: env.isProduction,
+        allowedOrigin: env.allowedOrigins
+      },
+      cookieConfig: {
+        path: '/',
+        httpOnly: req.isSecure,
+        secure: req.isSecure,
+        signed: req.isSecure,
+        sameSite: 'Lax',
+        maxAge: env.refreshTokenExpires * 1000
+      }
+    })
+  })
 
   app.use(express.json())
   app.use('/api/v1', mongoSanitize(), apiV1Routes)

@@ -10,7 +10,10 @@ exports.assignPropsOnRequest = (req, res, next) => {
     env.isVercel && env.isProduction ? true : req.secure
   )
 
-  defineGetter(req, 'domain', () => `${req.protocol}://${req.get('host')}`)
+  defineGetter(req, 'domain', function domain() {
+    const proto = this.isSecure ? 'https' : 'http'
+    return `${proto}://${this.get('host')}`
+  })
 
   req.refreshTokenManager = email => {
     const refreshToken = signToken(email, TOKENS.refresh)
@@ -21,7 +24,7 @@ exports.assignPropsOnRequest = (req, res, next) => {
       domain,
       path: '/',
       httpOnly: isSecure,
-      secure: true,
+      secure: isSecure,
       signed: isSecure,
       sameSite: false,
       maxAge: env.refreshTokenExpires * 1000
@@ -54,7 +57,7 @@ exports.assignPropsOnResponse = (_, res, next) => {
 // Convinience Method For Vercel Deployment screen
 exports.showAppIsRunning = (_, res) => res.status(200).send('App is running')
 
-exports.initiateDatabaseConnection = (_, __, next) => {
-  connect().then(connect.logFirstConnection).catch(connect.logFirstConnection)
+exports.initDB = (_, __, next) => {
+  connect().then(connect.logOnFirstRequest).catch(connect.logOnFirstRequest)
   next()
 }

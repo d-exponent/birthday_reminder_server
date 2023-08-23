@@ -100,11 +100,10 @@ exports.login = catchAsync(async (req, res, next) => {
   })
 
   if (firstLogin) {
-    try {
-      await new Email(user.name, user.email).sendWelcome()
-    } catch (e) {
+    new Email(user.name, user.email).sendWelcome().catch(error => {
+      const e = new EmailError(error.message)
       commitError(e).catch(err => console.error(err))
-    }
+    })
   }
 })
 
