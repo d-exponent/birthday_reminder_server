@@ -50,7 +50,6 @@ exports.assignPropsOnResponse = (_, res, next) => {
     }
     res.status(body.status).json({ ...body, status: undefined })
   }
-
   next()
 }
 
