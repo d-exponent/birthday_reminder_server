@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign */
+const userAgent = require('express-useragent')
 const env = require('../settings/env')
 const connect = require('../lib/db-connect')
 const { signToken } = require('../lib/auth')
@@ -6,21 +7,27 @@ const { defineGetter } = require('../lib/utils')
 const { STATUS, RESPONSE, TOKENS } = require('../settings/constants')
 
 exports.assignPropsOnRequest = (req, res, next) => {
-  defineGetter(req, 'isSecure', () =>
-    env.isVercel && env.isProduction ? true : req.secure
-  )
+  defineGetter(req, 'isSecure', function isSecure() {
+    return env.isVercel && env.isProduction ? true : this.secure
+  })
 
   defineGetter(req, 'domain', function domain() {
     const proto = this.isSecure ? 'https' : 'http'
     return `${proto}://${this.get('host')}`
   })
 
-  req.refreshTokenManager = email => {
-    const refreshToken = signToken(email, TOKENS.refresh)
-    const { isSecure, domain } = req
+  defineGetter(req, 'isMobile', function isMobile() {
+    const agent = userAgent.parse(this.headers['user-agent'])
+    return agent.isMobile
+  })
 
-    // CORS and Set-Cookie has been such a pain.
-    const cookieConfig = {
+  req.refreshTokenManager = function refreshTokenManager (email) {
+    const { isSecure, domain, isMobile } = this
+    const refreshToken = signToken(email, TOKENS.refresh)
+
+    if(isMobile) return refreshToken
+    
+    res.cookie(env.cookieName, refreshToken, {
       domain,
       path: '/',
       httpOnly: isSecure,
@@ -28,10 +35,7 @@ exports.assignPropsOnRequest = (req, res, next) => {
       signed: isSecure,
       sameSite: false,
       maxAge: env.refreshTokenExpires * 1000
-    }
-
-    res.cookie(env.cookieName, refreshToken, cookieConfig)
-
+    })
     return refreshToken
   }
   next()

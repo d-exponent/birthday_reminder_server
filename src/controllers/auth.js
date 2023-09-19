@@ -26,6 +26,9 @@ const INVALID_TOKEN_ERROR = new AppError(
 )
 const LOGIN_ERROR = new AppError('Please log in', UNAUTHORIZED)
 
+const getRefreshTokenOnMobile = (req, refreshToken) =>
+  req.isMobile ? refreshToken : undefined
+
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
   const user = await User.findOne(req.customQuery).select(
     defaultSelectsAnd('isActive')
@@ -96,6 +99,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
   res.sendResponse({
     accessToken: signToken(user.email),
+    refreshToken: getRefreshTokenOnMobile(req, user.refreshToken),
     data: excludeNonDefaults(user)
   })
 
@@ -113,18 +117,25 @@ exports.logout = catchAsync(async ({ currentUser }, res) => {
 })
 
 exports.getAccessToken = catchAsync(async (req, res, next) => {
-  const cookies = req.isSecure ? 'signedCookies' : 'cookies'
-  const refreshToken = req[cookies][env.cookieName]
+  let refreshToken
+  if (req.isMobile) {
+    refreshToken = req.body.refreshToken
+  } else {
+    const cookies = req.isSecure ? 'signedCookies' : 'cookies'
+    refreshToken = req[cookies][env.cookieName]
+  }
 
   if (!refreshToken || !REGEX.jwtToken.test(refreshToken))
     return next(INVALID_TOKEN_ERROR)
 
-  selected = defaultSelectsAnd('refreshToken')
-  const user = await User.findOne({ refreshToken }).select(selected)
+  const user = await User.findOne({ refreshToken }).select(
+    defaultSelectsAnd('refreshToken')
+  )
 
   if (!user || user.refreshToken !== refreshToken)
     return next(INVALID_TOKEN_ERROR)
 
+  // Will throw an error for invalid or expired tokens
   await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
 
   // REFRESH TOKEN ROTATION
@@ -133,6 +144,7 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
 
   res.sendResponse({
     accessToken: signToken(user.email),
+    refreshToken: getRefreshTokenOnMobile(req, user.refreshToken),
     status: STATUS.success.created
   })
 })
@@ -162,7 +174,6 @@ exports.setUserForlogout = async (req, res, next) => {
   req.currentUser.refreshToken = undefined
   req.currentUser.accessCode = undefined
   req.currentUser.accessCodeExpires = undefined
-  res.clearCooki(env.cookieName, { path: '/' })
   next()
 }
 

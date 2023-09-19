@@ -30,11 +30,12 @@ module.exports = () => {
   app.get('/', appController.showAppIsRunning)
   app.options('*', cors(corsConfig))
 
-  app.use(rateLimit(rateLimitConfig))
   app.use(cors(corsConfig))
-  app.use(compression())
+  app.use(rateLimit(rateLimitConfig))
   app.use(cookieParser(env.cookieSecret))
-
+  app.use(compression())
+  app.use(express.json())
+  
   // eslint-disable-next-line no-unused-expressions
   !env.isProduction && app.use(morgan('dev'))
 
@@ -42,31 +43,6 @@ module.exports = () => {
   app.use(appController.assignPropsOnRequest)
   app.use(appController.assignPropsOnResponse)
 
-  app.get('/api/v1/settings', (req, res) => {
-    res.sendResponse({
-      request: {
-        secure: req.secure,
-        protocol: req.protocol,
-        isSecure: req.isSecure,
-        domain: req.domain
-      },
-      env: {
-        ...env,
-        production: env.isProduction,
-        allowedOrigin: env.allowedOrigins
-      },
-      cookieConfig: {
-        path: '/',
-        httpOnly: req.isSecure,
-        secure: req.isSecure,
-        signed: req.isSecure,
-        sameSite: 'Lax',
-        maxAge: env.refreshTokenExpires * 1000
-      }
-    })
-  })
-
-  app.use(express.json())
   app.use('/api/v1', mongoSanitize(), apiV1Routes)
   app.use('*', errorController.wildRoutesHandler)
   app.use(errorController.globalErrorHandler)
