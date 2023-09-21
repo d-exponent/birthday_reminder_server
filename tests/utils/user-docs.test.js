@@ -27,9 +27,7 @@ describe('defaultSelectsAnd function', () => {
     test('recieve one aregument and argument is in DEFAULT_SELECTS', () => {
       const selectedArr = DEFAULT_SELECTS.split(' ')
       expect(
-        defaultSelectsAnd(
-          selectedArr[Math.floor(Math.random() * selectedArr.length)]
-        )
+        defaultSelectsAnd(selectedArr[Math.floor(Math.random() * selectedArr.length)])
       ).toBe(DEFAULT_SELECTS)
     })
 
@@ -61,17 +59,13 @@ describe('filterOnly function', () => {
     })
 
     test('ignore falsy arguments', () => {
-      expect(
-        filterOnly(MOCK_DOCUMENT, null, undefined, 0, [], '')
-      ).toStrictEqual({})
+      expect(filterOnly(MOCK_DOCUMENT, null, undefined, 0, [], '')).toStrictEqual({})
     })
   })
 })
 
 describe('excludeNonDefaults function', () => {
   test(`return object properties with keys in ${DEFAULT_SELECTS}`, () => {
-    expect(excludeNonDefaults({ ...MOCK_USER, foo: 'foo' })).toStrictEqual(
-      MOCK_USER
-    )
+    expect(excludeNonDefaults({ ...MOCK_USER, foo: 'foo' })).toStrictEqual(MOCK_USER)
   })
 })

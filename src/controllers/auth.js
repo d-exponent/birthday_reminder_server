@@ -9,30 +9,19 @@ const commitError = require('../lib/commit-error')
 const { EmailError } = require('../lib/custom-errors')
 const { defaultSelectsAnd, excludeNonDefaults } = require('../lib/utils')
 const { generateAccessCode, timeInMinutes, signToken } = require('../lib/auth')
-const {
-  STATUS,
-  REGEX,
-  USER_ROLES,
-  DELETE_RESPONSE
-} = require('../settings/constants')
+const { STATUS, REGEX, USER_ROLES, DELETE_RESPONSE } = require('../settings/constants')
 
-let errorMessage
-let selected
-
-const UNAUTHORIZED = STATUS.error.unauthorized
 const INVALID_TOKEN_ERROR = new AppError(
   'Invalid auth credentials',
-  UNAUTHORIZED
+  STATUS.error.unauthorized
 )
-const LOGIN_ERROR = new AppError('Please log in', UNAUTHORIZED)
+const LOGIN_ERROR = new AppError('Please log in', STATUS.error.unauthorized)
 
 const getRefreshTokenOnMobile = (req, refreshToken) =>
   req.isMobile ? refreshToken : undefined
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.customQuery).select(
-    defaultSelectsAnd('isActive')
-  )
+  const user = await User.findOne(req.customQuery).select(defaultSelectsAnd('isActive'))
 
   if (!user || !user.isActive) {
     return next(new AppError('The user does not exist', STATUS.error.notFound))
@@ -44,7 +33,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
   const emailer = new Email(user.name, user.email)
 
   const message = `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
-  errorMessage = `Error sending ${user.email} an access code`
+  let errorMessage = `Error sending ${user.email} an access code`
 
   /**
    * Vercel seems to block nodemailer if the emailing action is not awaited with async/await
@@ -56,8 +45,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
       res.sendResponse({ message })
     } catch (err) {
       res.sendResponse({ message: errorMessage })
-      errorMessage = err.message || errorMessage
-      commitError(new EmailError(errorMessage)).catch(e =>
+      commitError(new EmailError(err.message || errorMessage)).catch(e =>
         console.error(e.message)
       )
     }
@@ -86,7 +74,7 @@ exports.login = catchAsync(async (req, res, next) => {
   )
 
   if (!user || Date.now() > user.accessCodeExpires.getTime()) {
-    return next(new AppError('Invalid access code', UNAUTHORIZED))
+    return next(new AppError('Invalid access code', STATUS.error.unauthorized))
   }
 
   const firstLogin = !user.isVerified
@@ -104,9 +92,8 @@ exports.login = catchAsync(async (req, res, next) => {
   })
 
   if (firstLogin) {
-    new Email(user.name, user.email).sendWelcome().catch(error => {
-      const e = new EmailError(error.message)
-      commitError(e).catch(err => console.error(err))
+    new Email(user.name, user.email).sendWelcome().catch(e => {
+      commitError(new EmailError(e.message)).catch(err => console.error(err))
     })
   }
 })
@@ -119,7 +106,7 @@ exports.logout = catchAsync(async ({ currentUser }, res) => {
 exports.getAccessToken = catchAsync(async (req, res, next) => {
   let refreshToken
   if (req.isMobile) {
-    refreshToken = req.body.refreshToken
+    refreshToken = req.query.refreshToken
   } else {
     const cookies = req.isSecure ? 'signedCookies' : 'cookies'
     refreshToken = req[cookies][env.cookieName]
@@ -132,8 +119,7 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
     defaultSelectsAnd('refreshToken')
   )
 
-  if (!user || user.refreshToken !== refreshToken)
-    return next(INVALID_TOKEN_ERROR)
+  if (!user || user.refreshToken !== refreshToken) return next(INVALID_TOKEN_ERROR)
 
   // Will throw an error for invalid or expired tokens
   await promisify(jwt.verify)(refreshToken, env.refreshTokenSecret)
@@ -160,8 +146,10 @@ exports.protect = catchAsync(async (req, _, next) => {
   if (!token) return next(INVALID_TOKEN_ERROR)
 
   const decoded = await promisify(jwt.verify)(token, env.accessTokenSecret)
-  selected = defaultSelectsAnd('isActive', 'role', 'isVerified')
-  const user = await User.findOne({ email: decoded.email }).select(selected)
+
+  const user = await User.findOne({ email: decoded.email }).select(
+    defaultSelectsAnd('isActive', 'role', 'isVerified')
+  )
 
   if (!user || !user.isActive) return next(INVALID_TOKEN_ERROR)
   if (!user.isVerified) return next(LOGIN_ERROR)
@@ -170,7 +158,7 @@ exports.protect = catchAsync(async (req, _, next) => {
   next()
 })
 
-exports.setUserForlogout = async (req, res, next) => {
+exports.setUserForlogout = async (req, _, next) => {
   req.currentUser.refreshToken = undefined
   req.currentUser.accessCode = undefined
   req.currentUser.accessCodeExpires = undefined
@@ -179,8 +167,7 @@ exports.setUserForlogout = async (req, res, next) => {
 
 exports.permit = (...args) => {
   // Ensure at least one role is passed
-  if (!args.length)
-    throw new Error('restrictTo requires at least one valid role')
+  if (!args.length) throw new Error('restrictTo requires at least one valid role')
 
   // Ensure only valid roles  are passed
   args.forEach(arg => {
@@ -191,8 +178,12 @@ exports.permit = (...args) => {
 
   return (req, _, next) => {
     if (!args.includes(req.currentUser.role)) {
-      errorMessage = 'You do not have permission to access this resource'
-      return next(new AppError(errorMessage, STATUS.error.forbidden))
+      return next(
+        new AppError(
+          'You do not have permission to access this resource',
+          STATUS.error.forbidden
+        )
+      )
     }
 
     next()
@@ -204,8 +195,12 @@ exports.testAccessCodeAnatomy = (req, _, next) => {
   const { customQuery, params, originalUrl } = req
 
   if (!REGEX.accessCode.test(params.accessCode)) {
-    errorMessage = `The access code ${params.accessCode} on ${originalUrl} is invalid`
-    return next(new AppError(errorMessage, STATUS.error.badRequest))
+    return next(
+      new AppError(
+        `The access code ${params.accessCode} on ${originalUrl} is invalid`,
+        STATUS.error.badRequest
+      )
+    )
   }
 
   customQuery.accessCode = params.accessCode

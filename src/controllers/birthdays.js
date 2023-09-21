@@ -36,8 +36,7 @@ exports.processImageUpload = catchAsync(
       const uniqueId = crypto.randomBytes(16).toString('hex')
 
       const imageName =
-        body.imageCover ||
-        `${name.toLowerCase().split(' ').join('-')}-${uniqueId}.png`
+        body.imageCover || `${name.toLowerCase().split(' ').join('-')}-${uniqueId}.png`
 
       await sharp(file.buffer).resize(800).png().toFile(imagePath(imageName))
       body.imageCover = imageName
@@ -102,54 +101,49 @@ exports.addBirthday = catchAsync(async ({ params, body }, res) => {
   })
 })
 
-exports.getBirthdays = catchAsync(
-  async ({ body, query: reqQuery }, res, next) => {
-    let mongooseQuery = BirthDay.find(body)
-    errorMessage = 'There are no birthdays at this time'
+exports.getBirthdays = catchAsync(async ({ body, query: reqQuery }, res, next) => {
+  let mongooseQuery = BirthDay.find(body)
+  errorMessage = 'There are no birthdays at this time'
 
-    if (body.owner) {
-      mongooseQuery = mongooseQuery.select('-owner')
-      errorMessage = 'You have no saved birthdays'
-    } else {
-      mongooseQuery = mongooseQuery.populate({
-        path: 'owner',
-        select: 'name email'
-      })
-    }
-
-    const query = new BuildMongooseQuery(mongooseQuery, reqQuery)
-      .filter()
-      .fields()
-      .page()
-      .sort()
-
-    const birthdays = await query.mongooseQuery
-
-    if (!birthdays.length) {
-      return next(new AppError(errorMessage, STATUS.error.notFound))
-    }
-
-    res.sendResponse({
-      results: birthdays.length,
-      data: birthdays
+  if (body.owner) {
+    mongooseQuery = mongooseQuery.select('-owner')
+    errorMessage = 'You have no saved birthdays'
+  } else {
+    mongooseQuery = mongooseQuery.populate({
+      path: 'owner',
+      select: 'name email'
     })
   }
-)
 
-exports.getBirthday = catchAsync(
-  async ({ params: { id }, currentUser }, res, next) => {
-    const populateParmas =
-      currentUser && currentUser.role === 'admin' ? 'owner' : ''
-    const birthday = await BirthDay.findById(id).populate(populateParmas)
+  const query = new BuildMongooseQuery(mongooseQuery, reqQuery)
+    .filter()
+    .fields()
+    .page()
+    .sort()
 
-    if (!birthday) {
-      errorMessage = "The birthday doesn't exist"
-      return next(new AppError(errorMessage, STATUS.error.notFound))
-    }
+  const birthdays = await query.mongooseQuery
 
-    res.sendResponse({ data: birthday })
+  if (!birthdays.length) {
+    return next(new AppError(errorMessage, STATUS.error.notFound))
   }
-)
+
+  res.sendResponse({
+    results: birthdays.length,
+    data: birthdays
+  })
+})
+
+exports.getBirthday = catchAsync(async ({ params: { id }, currentUser }, res, next) => {
+  const populateParmas = currentUser && currentUser.role === 'admin' ? 'owner' : ''
+  const birthday = await BirthDay.findById(id).populate(populateParmas)
+
+  if (!birthday) {
+    errorMessage = "The birthday doesn't exist"
+    return next(new AppError(errorMessage, STATUS.error.notFound))
+  }
+
+  res.sendResponse({ data: birthday })
+})
 
 exports.updateBirthday = catchAsync(async ({ body, params: { id } }, res) => {
   res.sendResponse({

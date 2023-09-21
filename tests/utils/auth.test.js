@@ -1,8 +1,4 @@
-const {
-  generateAccessCode,
-  timeInMinutes,
-  signToken
-} = require('../../src/lib/auth')
+const { generateAccessCode, timeInMinutes, signToken } = require('../../src/lib/auth')
 const { REGEX } = require('../../src/settings/constants')
 
 describe('generateAccessCode funtion', () => {
@@ -71,9 +67,7 @@ describe('timeInMinutes funtion', () => {
 
   test('return time in target minutes', () => {
     const targetMins = 10
-    expect(timeInMinutes(targetMins)).toEqual(
-      new Date(Date.now() + targetMins * 60000)
-    )
+    expect(timeInMinutes(targetMins)).toEqual(new Date(Date.now() + targetMins * 60000))
   })
 })
 

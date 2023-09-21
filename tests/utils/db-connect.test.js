@@ -14,9 +14,7 @@ afterEach(async () => {
 
 describe('mongodb connection function', () => {
   test('establish a new connection', async () => {
-    await expect(connectDb()).resolves.toBe(
-      'Connected to mongoDb successfully👍'
-    )
+    await expect(connectDb()).resolves.toBe('Connected to mongoDb successfully👍')
   })
 
   test('abort new connection if one already exists', async () => {
@@ -33,9 +31,7 @@ describe('mongodb connection function', () => {
     })
 
     test('incomplete/incorrect object parameter', async () => {
-      await expect(connectDb({ dbPassword: 'foo', db: '' })).rejects.toMatch(
-        regex
-      )
+      await expect(connectDb({ dbPassword: 'foo', db: '' })).rejects.toMatch(regex)
     })
   })
 })

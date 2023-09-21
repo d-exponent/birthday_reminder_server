@@ -30,10 +30,3 @@ exports.filter = (doc, ...args) => {
     return accumulator
   }, {})
 }
-
-exports.defineGetter = (obj, name, getter) => {
-  Object.defineProperty(obj, name, {
-    configurable: false,
-    get: getter
-  })
-}

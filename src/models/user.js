@@ -15,10 +15,7 @@ const userSchema = new Schema(
       unique: true,
       lowercase: true,
       required: [true, 'A user must have an email address'],
-      validate: [
-        email => REGEX.email.test(email),
-        '{VALUE} is not of valid email'
-      ]
+      validate: [email => REGEX.email.test(email), '{VALUE} is not of valid email']
     },
     phone: {
       type: String,

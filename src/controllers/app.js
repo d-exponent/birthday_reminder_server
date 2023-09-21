@@ -3,8 +3,14 @@ const userAgent = require('express-useragent')
 const env = require('../settings/env')
 const connect = require('../lib/db-connect')
 const { signToken } = require('../lib/auth')
-const { defineGetter } = require('../lib/utils')
 const { STATUS, RESPONSE, TOKENS } = require('../settings/constants')
+
+const defineGetter = (obj, name, getter) => {
+  Object.defineProperty(obj, name, {
+    configurable: false,
+    get: getter
+  })
+}
 
 exports.assignPropsOnRequest = (req, res, next) => {
   defineGetter(req, 'isSecure', function isSecure() {
@@ -18,22 +24,19 @@ exports.assignPropsOnRequest = (req, res, next) => {
 
   defineGetter(req, 'isMobile', function isMobile() {
     const agent = userAgent.parse(this.headers['user-agent'])
-    return agent.isMobile
+    return agent.isMobile // Boolean
   })
 
-  req.refreshTokenManager = function refreshTokenManager (email) {
-    const { isSecure, domain, isMobile } = this
+  req.refreshTokenManager = function refreshTokenManager(email) {
+    const { isSecure, isMobile } = this
     const refreshToken = signToken(email, TOKENS.refresh)
-
-    if(isMobile) return refreshToken
     
+    if (isMobile) return refreshToken
+
     res.cookie(env.cookieName, refreshToken, {
-      domain,
-      path: '/',
       httpOnly: isSecure,
       secure: isSecure,
       signed: isSecure,
-      sameSite: false,
       maxAge: env.refreshTokenExpires * 1000
     })
     return refreshToken
@@ -41,7 +44,7 @@ exports.assignPropsOnRequest = (req, res, next) => {
   next()
 }
 
-exports.assignPropsOnResponse = (_, res, next) => {
+exports.assignPropsOnResponse = (req, res, next) => {
   res.sendResponse = (body, type = RESPONSE.success) => {
     if (type.match(/error/i)) {
       body.status = body.status || STATUS.error.serverError
@@ -52,7 +55,7 @@ exports.assignPropsOnResponse = (_, res, next) => {
     } else {
       throw new TypeError('type parameter must be either "error" or "success"')
     }
-    res.status(body.status).json({ ...body, status: undefined })
+    res.status(body.status).json(body)
   }
   next()
 }

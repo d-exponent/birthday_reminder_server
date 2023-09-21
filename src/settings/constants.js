@@ -54,13 +54,7 @@ exports.REGEX = {
 }
 
 // exports.BIRTHDAYS_IMAGES_DIR = `${__dirname}/../data/uploads/images/birthdays`
-exports.BIRTHDAYS_IMAGES_DIR = path.join(
-  __dirname,
-  '..',
-  'data',
-  'images',
-  'birthdays'
-)
+exports.BIRTHDAYS_IMAGES_DIR = path.join(__dirname, '..', 'data', 'images', 'birthdays')
 
 exports.MONGO_DB_CONNECTION = {
   isActive: false,

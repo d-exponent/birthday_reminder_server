@@ -35,7 +35,7 @@ module.exports = () => {
   app.use(cookieParser(env.cookieSecret))
   app.use(compression())
   app.use(express.json())
-  
+
   // eslint-disable-next-line no-unused-expressions
   !env.isProduction && app.use(morgan('dev'))
 

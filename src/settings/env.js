@@ -16,9 +16,7 @@ module.exports = {
   dbUsername: env.DB_USERNAME,
 
   // 'fOo.bAr, foo.b ar, foobar' => ['foo.bar', 'foo.bar', 'foobar']
-  allowedOrigins: env.ALLOWED_ORIGINS?.replaceAll(' ', '')
-    .toLowerCase()
-    .split(','),
+  allowedOrigins: env.ALLOWED_ORIGINS?.replaceAll(' ', '').toLowerCase().split(','),
 
   // For Nodemailer (PROD)
   appEmail: env.APP_EMAIL,
