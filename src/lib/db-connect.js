@@ -13,16 +13,3 @@ module.exports = async function connect(env = enviroment) {
     return Promise.reject(e)
   }
 }
-
-const logOnFirstRequest = () => {
-  let isFirstRequest = true
-
-  return msg => {
-    if (!isFirstRequest) return
-    // eslint-disable-next-line no-unused-expressions
-    msg.message ? console.error(msg.message) : console.log(msg)
-    isFirstRequest = false
-  }
-}
-
-module.exports.logOnFirstRequest = logOnFirstRequest()

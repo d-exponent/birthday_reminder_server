@@ -9,6 +9,7 @@ extends:
 parserOptions:
   ecmaVersion: latest
 rules:
-  no-console: 'off'
+  # no-console: 'off'
   dot-notation: 'off'
   consistent-return: 'off'
+  no-param-reassign: 'off'

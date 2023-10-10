@@ -1,4 +1,3 @@
-/* eslint-disable no-param-reassign */
 const AppError = require('../lib/app-error')
 const commitToDb = require('../lib/commit-error')
 const { isProduction } = require('../settings/env')
@@ -17,23 +16,19 @@ const handleValidationError = ({ errors }) => {
   return new AppError(`${validationMsgs.join('. ')}`, ERROR_STATUS.badRequest)
 }
 
-const sendProductionError = (res, error) => {
-  let errCopy
-
+const sendProductionError = (error, sender) => {
   if (!error.isOperational) {
-    errCopy = { ...error }
     error.status = ERROR_STATUS.serverError
-    error.message = "Something went wrong. It's not you, it's us😥"
+    error.message = 'Something went wrong.'
   }
-  res.sendResponse({ status: error.status, message: error.message }, RESPONSE.error)
-  // eslint-disable-next-line no-unused-expressions
-  errCopy && commitToDb(errCopy).catch(e => console.error(e))
+
+  sender({ status: error.status, message: error.message }, RESPONSE.error)
 }
 
 exports.wildRoutesHandler = ({ method, originalUrl }, _, next) =>
   next(
     new AppError(
-      `${method.toUpperCase()}: ${originalUrl} is not allowed on this server`,
+      `\\${method.toUpperCase()}: ${originalUrl}\\ is not allowed on this server`,
       ERROR_STATUS.methodNotAllowed
     )
   )
@@ -51,13 +46,16 @@ exports.globalErrorHandler = (err, _, res, next) => {
 
   // Send dev env errors as is
   if (!isProduction) {
+    // eslint-disable-next-line no-console
+    console.log(err)
     res.sendResponse(error, RESPONSE.error)
     return next()
   }
 
+  //   PRODUCTION ERRORS
   if (error.code === 11000) error = handleDuplicateFeilds(error)
 
-  if (error.name) {
+  if (error.name && error.name !== 'Error') {
     switch (error.name) {
       case 'ValidationError':
         error = handleValidationError(error)
@@ -77,9 +75,11 @@ exports.globalErrorHandler = (err, _, res, next) => {
         )
         break
       default:
-      // empty defualt block
+        error = new Error()
     }
   }
-  sendProductionError(res, error)
+  sendProductionError(error, res.sendResponse)
+
+  if (!error.isOperational) commitToDb(error).catch(() => {})
   next()
 }

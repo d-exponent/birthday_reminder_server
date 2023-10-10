@@ -1,21 +1,23 @@
-const express = require('express')
 const cors = require('cors')
-const cookieParser = require('cookie-parser')
-const mongoSanitize = require('express-mongo-sanitize')
-const rateLimit = require('express-rate-limit')
-const morgan = require('morgan')
+const express = require('express')
 const compression = require('compression')
+const cookieParser = require('cookie-parser')
+const rateLimit = require('express-rate-limit')
+const mongoSanitize = require('express-mongo-sanitize')
 
-const app = express()
-const apiV1Routes = require('./routes/api-v1')
-const env = require('./settings/env')
 const appController = require('./controllers/app')
 const errorController = require('./controllers/errors')
+const apiV1RoutesController = require('./routes/api-v1')
+
 const { CORSOriginSetter } = require('./lib/auth')
+const { isProduction, cookieSecret } = require('./settings/env')
+const firstRequestManager = require('./lib/manage-first-request')
+
+const app = express()
 
 const rateLimitConfig = {
   windowMs: 900000, // 15 minutes
-  max: env.isProduction ? 500 : 1000,
+  max: isProduction ? 500 : 1000,
   standardHeaders: true,
   legacyHeaders: false
 }
@@ -32,18 +34,23 @@ module.exports = () => {
 
   app.use(cors(corsConfig))
   app.use(rateLimit(rateLimitConfig))
-  app.use(cookieParser(env.cookieSecret))
+  app.use(cookieParser(cookieSecret))
   app.use(compression())
   app.use(express.json())
 
-  // eslint-disable-next-line no-unused-expressions
-  !env.isProduction && app.use(morgan('dev'))
+  app.use(
+    appController.initDB,
+    appController.useMorganOnDev(),
+    appController.assignPropsOnRequest,
+    appController.assignPropsOnResponse
+  )
 
-  app.use(appController.initDB)
-  app.use(appController.assignPropsOnRequest)
-  app.use(appController.assignPropsOnResponse)
+  app.use(
+    firstRequestManager.prepImagesDir.bind(firstRequestManager),
+    firstRequestManager.setIsFirstRequest.bind(firstRequestManager)
+  )
 
-  app.use('/api/v1', mongoSanitize(), apiV1Routes)
+  app.use('/api/v1', mongoSanitize(), apiV1RoutesController)
   app.use('*', errorController.wildRoutesHandler)
   app.use(errorController.globalErrorHandler)
   return app

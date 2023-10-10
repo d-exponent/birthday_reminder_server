@@ -10,7 +10,7 @@ const asssertPositiveIntegerOrZero = (num, name) => {
 
 exports.generateAccessCode = (length = 4) => {
   asssertPositiveIntegerOrZero(length, 'length')
-  if (length < 4 || length > 8) throw TypeError('length must between 4 to 8')
+  if (length < 4 || length > 8) throw TypeError('length must be between 4 to 8')
   return [...Array(length)].map(() => Math.round(Math.random() * 9)).join('')
 }
 

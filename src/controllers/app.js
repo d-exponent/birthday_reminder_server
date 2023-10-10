@@ -1,7 +1,8 @@
-/* eslint-disable no-param-reassign */
 const userAgent = require('express-useragent')
+const morgan = require('morgan')
 const env = require('../settings/env')
 const connect = require('../lib/db-connect')
+const firstRequestManger = require('../lib/manage-first-request')
 const { signToken } = require('../lib/auth')
 const { STATUS, RESPONSE, TOKENS } = require('../settings/constants')
 
@@ -30,32 +31,31 @@ exports.assignPropsOnRequest = (req, res, next) => {
   req.refreshTokenManager = function refreshTokenManager(email) {
     const { isSecure, isMobile } = this
     const refreshToken = signToken(email, TOKENS.refresh)
-    
-    if (isMobile) return refreshToken
 
-    res.cookie(env.cookieName, refreshToken, {
-      httpOnly: isSecure,
-      secure: isSecure,
-      signed: isSecure,
-      maxAge: env.refreshTokenExpires * 1000
-    })
+    if (!isMobile) {
+      res.cookie(env.cookieName, refreshToken, {
+        httpOnly: isSecure,
+        secure: isSecure,
+        signed: isSecure,
+        maxAge: env.refreshTokenExpires * 1000
+      })
+    }
     return refreshToken
   }
   next()
 }
 
-exports.assignPropsOnResponse = (req, res, next) => {
-  res.sendResponse = (body, type = RESPONSE.success) => {
-    if (type.match(/error/i)) {
-      body.status = body.status || STATUS.error.serverError
-      body.success = false
-    } else if (type.match(/success/i)) {
-      body.status = body.status || STATUS.success.ok
-      body.success = true
-    } else {
-      throw new TypeError('type parameter must be either "error" or "success"')
-    }
-    res.status(body.status).json(body)
+exports.assignPropsOnResponse = (_, res, next) => {
+  res.sendResponse = function sendResponse(body, type = RESPONSE.success) {
+    const responseBody = { ...body }
+    responseBody.success = !!type.match(/success/i)
+
+    if (!responseBody.status)
+      responseBody.status = type.match(/error/i)
+        ? STATUS.error.serverError
+        : STATUS.success.ok
+
+    res.status(responseBody.status).json(responseBody)
   }
   next()
 }
@@ -63,7 +63,12 @@ exports.assignPropsOnResponse = (req, res, next) => {
 // Convinience Method For Vercel Deployment screen
 exports.showAppIsRunning = (_, res) => res.status(200).send('App is running')
 
+const connectLogger = firstRequestManger.logDbConnect.bind(firstRequestManger)
+
 exports.initDB = (_, __, next) => {
-  connect().then(connect.logOnFirstRequest).catch(connect.logOnFirstRequest)
+  connect().then(connectLogger).catch(connectLogger)
   next()
 }
+
+exports.useMorganOnDev = () =>
+  env.isProduction ? (_, __, next) => next() : morgan('dev')

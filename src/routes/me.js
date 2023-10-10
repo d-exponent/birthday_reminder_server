@@ -4,6 +4,8 @@ const userController = require('../controllers/users')
 const authController = require('../controllers/auth')
 const birthdayController = require('../controllers/birthdays')
 
+const multerCatchImageCover = birthdayController.upload.single('cover')
+
 router.post('/sign-up', userController.setRequestBody, userController.createUser)
 
 router.use(authController.protect)
@@ -27,7 +29,7 @@ router
   .get(meController.setBodyAddOwner, birthdayController.getBirthdays)
   .post(
     meController.setMyIdOnParams,
-    birthdayController.upload.single('birthdayImage'),
+    multerCatchImageCover,
     birthdayController.processImageUpload,
     birthdayController.addBirthday
   )
@@ -37,7 +39,7 @@ router
   .get(meController.checkUserOwnsBirthday, birthdayController.getBirthday)
   .patch(
     meController.checkUserOwnsBirthday,
-    birthdayController.upload.single('birthdayImage'),
+    multerCatchImageCover,
     birthdayController.processImageUpload,
     birthdayController.updateBirthday
   )
