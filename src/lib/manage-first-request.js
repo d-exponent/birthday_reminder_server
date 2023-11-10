@@ -1,8 +1,12 @@
 /* eslint-disable lines-between-class-members */
 /* eslint-disable no-console */
 const fs = require('fs')
+const path = require('path')
 const AppError = require('./app-error')
-const { STATUS, BIRTHDAYS_IMAGES_DIR } = require('../settings/constants')
+const { STATUS, BIRTHDAYS_IMAGES_DIR_UNRESOLVED } = require('../settings/constants')
+const { isVercel } = require('../settings/env')
+
+const BIRTHDAYS_IMAGES_DIR = path.join('src', 'assets', 'images', 'birthdays')
 
 class FirstRequestManager {
   isFirstRequest = true
@@ -21,29 +25,35 @@ class FirstRequestManager {
   }
 
   async prepImagesDir(_, __, next) {
+    if(isVercel){
+      /**
+       * Vercel seems to have restricted permissions to creating dynamic directoires.
+       * Ensure the directory src/assets/images/birthdays  are already in fs before vercel deployment.
+      */
+      this.hasCreatedImagesDir = true
+      return next()
+    }
+
+    // This implementation will be handy when we have a robust deployment to an Ubuntu instance
     if (!this.isFirstRequest) return next()
 
-    // This check is a time consuming blocking operation. Only done when absolutely neccessary
-    if (fs.existsSync(BIRTHDAYS_IMAGES_DIR)) return next()
+    if (fs.existsSync(BIRTHDAYS_IMAGES_DIR_UNRESOLVED)) return next()
 
     try {
-      await fs.promises.mkdir(BIRTHDAYS_IMAGES_DIR, { recursive: true })
+      await fs.promises.mkdir(BIRTHDAYS_IMAGES_DIR_UNRESOLVED, { recursive: true })
     } catch (e) {
-      return next(
-        new AppError(
-          e.message ?? 'Something went wrong with prepping images directory',
-          STATUS.error.serverError
-        )
-      )
+      return next(new AppError(e.message, STATUS.error.serverError))
     }
     this.hasCreatedImagesDir = true
     return next()
   }
 
   setIsFirstRequest(_, __, next) {
-    this.isFirstRequest = !(this.hasCreatedImagesDir && this.hasLoggedDbConnect)
+    if (this.isFirstRequest)
+      this.isFirstRequest = !(this.hasCreatedImagesDir && this.hasLoggedDbConnect)
     return next()
   }
 }
 
 module.exports = new FirstRequestManager()
+module.exports.birthdayImagesDirectory = BIRTHDAYS_IMAGES_DIR

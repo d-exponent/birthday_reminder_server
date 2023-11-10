@@ -18,7 +18,7 @@ const {
   BIRTHDAYS_IMAGES_DIR
 } = require('../settings/constants')
 
-const imageFilePath = imageName => path.join(BIRTHDAYS_IMAGES_DIR, imageName)
+const birthdayImageFile = imageName => path.join(BIRTHDAYS_IMAGES_DIR, imageName)
 
 const fileFilter = (_, file, cb) => {
   // Allow only image file. Detect by Mimetype.
@@ -42,10 +42,10 @@ exports.processImageUpload = catchAsync(
         req.method === 'PATCH' && birthday.imageCover
           ? birthday.imageCover
           : `${names.toLowerCase().split(' ').join('-')}-${crypto
-              .randomBytes(16)
-              .toString('hex')}-${randomDigits(6)}.png`
+              .randomBytes(8)
+              .toString('hex')}-${randomDigits(3)}.png`
 
-      await sharp(file.buffer).resize(800).png().toFile(imageFilePath(imageName))
+      await sharp(file.buffer).resize(800).png().toFile(birthdayImageFile(imageName))
       req.body.imageCover = imageName
     }
     next()
@@ -53,10 +53,13 @@ exports.processImageUpload = catchAsync(
 )
 
 exports.getImage = ({ params: { imageName } }, res) => {
-  const imageFile = imageFilePath(imageName)
+  const imageFile = birthdayImageFile(imageName)
+
   fs.stat(imageFile, e => {
+    // Send the file if it exists
     if (e === null) return res.sendFile(imageFile)
 
+    // handle response if the file does not exist
     if (e.code === 'ENOENT')
       return res.sendResponse(
         { message: 'The image does not exist in our records', status: se.notFound },
@@ -74,7 +77,7 @@ exports.deleteImage = catchAsync(
 
     const [birthdaySettled] = await Promise.allSettled([
       birthday.save(),
-      fs.promises.unlink(imageFilePath(imageName))
+      fs.promises.unlink(birthdayImageFile(imageName))
     ])
 
     if (birthdaySettled.status === 'rejected') {
@@ -90,21 +93,19 @@ exports.deleteImage = catchAsync(
 )
 
 exports.checkUserOwnsImage = catchAsync(async (req, _, next) => {
-  const { currentUser, params } = req
+  const { currentUser, params: {imageName} } = req
 
-  if (!fs.existsSync(imageFilePath(params.imageName ?? '')))
-    return next(new AppError('The image does not exist on our servers', se.notFound))
-
+  // Check that the image is associated with the current user
   const birthdays = await BirthDay.find({
     owner: currentUser['_id'],
-    imageCover: params?.imageName
+    imageCover: imageName ?? ''
   })
 
   if (birthdays.length === 0)
-    return next(new AppError("you don't have permission to this resource", se.forbidden))
+    return next(new AppError(`Couldn't find ${imageName} for ${currentUser.name}`, se.notFound))
 
-  // eslint-disable-next-line prefer-destructuring
-  req.birthday = birthdays[0]
+  const [birthday] = birthdays
+  req.birthday = birthday
   next()
 })
 

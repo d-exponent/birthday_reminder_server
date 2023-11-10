@@ -27,8 +27,8 @@ if (argv.length > 2 && loopCount > 1) {
 
           // Make a new Birthday Document for user
           await Birthday.create({
-            name: user.name,
-            email: user.email,
+            name: faker.person.fullName(),
+            email: faker.internet.email(),
             month:
               i % 2 === 0 ? currentDate.getMonth() + 1 : generateRandomNumber(11) + 1,
             day: i % 2 === 0 ? currentDate.getDate() : generateRandomNumber(30) + 1,

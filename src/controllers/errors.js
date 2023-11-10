@@ -46,8 +46,6 @@ exports.globalErrorHandler = (err, _, res, next) => {
 
   // Send dev env errors as is
   if (!isProduction) {
-    // eslint-disable-next-line no-console
-    console.log(err)
     res.sendResponse(error, RESPONSE.error)
     return next()
   }
