@@ -21,7 +21,7 @@ router.get(
   '/login/:user_email_phone_id/:accessCode',
   userController.setCustomQueryFromParams,
   authController.testAccessCodeAnatomy,
-  authController.login
+  authController.submitAccessCode
 )
 
 module.exports = router

@@ -72,7 +72,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
   }
 })
 
-exports.login = catchAsync(async (req, res, next) => {
+exports.submitAccessCode = catchAsync(async (req, res, next) => {
   const user = await User.findOne(req.customQuery).select(
     defaultSelectsAnd('accessCodeExpires', 'role', 'isVerified')
   )
