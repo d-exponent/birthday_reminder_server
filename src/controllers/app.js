@@ -19,20 +19,21 @@ exports.assignPropsOnRequest = (req, res, next) => {
   })
 
   defineGetter(req, 'domain', function domain() {
-    const proto = this.isSecure ? 'https' : 'http'
+    const proto = this.isSecure ? 'https' : 'http' // so it works on vercel or any other deployment platform
     return `${proto}://${this.get('host')}`
   })
 
   defineGetter(req, 'isMobile', function isMobile() {
-    const agent = userAgent.parse(this.headers['user-agent'])
-    return agent.isMobile // Boolean
+    if (this.headers?.platform === 'mobile') return true
+    return userAgent.parse(this.headers['user-agent']).isMobile
   })
 
   req.refreshTokenManager = function refreshTokenManager(email) {
-    const { isSecure, isMobile } = this
     const refreshToken = signToken(email, TOKENS.refresh)
 
-    if (!isMobile) {
+    // Set cookie header when the request is from a browser
+    if (!this.isMobile) {
+      const { isSecure } = this
       res.cookie(env.cookieName, refreshToken, {
         httpOnly: isSecure,
         secure: isSecure,
@@ -42,6 +43,11 @@ exports.assignPropsOnRequest = (req, res, next) => {
     }
     return refreshToken
   }
+
+  req.getTokenOnMobileRequest = function getTokenOnMobileRequest(token) {
+    return this.isMobile ? token : undefined
+  }
+
   next()
 }
 
@@ -60,11 +66,9 @@ exports.assignPropsOnResponse = (_, res, next) => {
   next()
 }
 
-// Convinience Method For Vercel Deployment screen
-exports.showAppIsRunning = (_, res) => res.status(200).send('App is running')
-
 const connectLogger = firstRequestManger.logDbConnect.bind(firstRequestManger)
 
+// App wide middlewares
 exports.initDB = (_, __, next) => {
   connect().then(connectLogger).catch(connectLogger)
   next()
@@ -72,3 +76,12 @@ exports.initDB = (_, __, next) => {
 
 exports.useMorganOnDev = () =>
   env.isProduction ? (_, __, next) => next() : morgan('dev')
+
+//* These methods serve to allow some live enviroment debugging. They <may> be removed later
+exports.showAppIsRunning = (_, res) => res.status(200).send('App is running')
+
+exports.showIsMobileReq = (req, res) =>
+  res.status(200).json({
+    isMobile: req.isMobile,
+    ...req.headers
+  })

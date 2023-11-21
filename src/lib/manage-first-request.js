@@ -15,21 +15,16 @@ class FirstRequestManager {
 
   logDbConnect(msg) {
     if (!this.isFirstRequest) return
-
-    if (msg.message) {
-      console.error(msg.message)
-    } else {
-      console.log(msg)
-    }
+    console.log(msg)
     this.hasLoggedDbConnect = true
   }
 
   async prepImagesDir(_, __, next) {
-    if(isVercel){
+    if (isVercel) {
       /**
        * Vercel seems to have restricted permissions to creating dynamic directoires.
-       * Ensure the directory src/assets/images/birthdays  are already in fs before vercel deployment.
-      */
+       * Ensure the directories src/assets/images/birthdays  are already in fs before vercel deployment.
+       */
       this.hasCreatedImagesDir = true
       return next()
     }
@@ -37,14 +32,17 @@ class FirstRequestManager {
     // This implementation will be handy when we have a robust deployment to an Ubuntu instance
     if (!this.isFirstRequest) return next()
 
-    if (fs.existsSync(BIRTHDAYS_IMAGES_DIR_UNRESOLVED)) return next()
+    if (fs.existsSync(BIRTHDAYS_IMAGES_DIR_UNRESOLVED)) {
+      this.hasCreatedImagesDir = true
+      return next()
+    }
 
     try {
       await fs.promises.mkdir(BIRTHDAYS_IMAGES_DIR_UNRESOLVED, { recursive: true })
+      this.hasCreatedImagesDir = true
     } catch (e) {
       return next(new AppError(e.message, STATUS.error.serverError))
     }
-    this.hasCreatedImagesDir = true
     return next()
   }
 

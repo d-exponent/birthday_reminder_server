@@ -18,9 +18,6 @@ const INVALID_TOKEN_ERROR = new AppError(
 
 const LOGIN_ERROR = new AppError('Please log in', STATUS.error.unauthorized)
 
-const getRefreshTokenOnMobile = (isMobileRequest, refreshToken) =>
-  isMobileRequest ? refreshToken : undefined
-
 const handleCommitError = message => {
   commitError(new EmailError(message)).catch(e => {
     // eslint-disable-next-line no-console
@@ -90,7 +87,7 @@ exports.submitAccessCode = catchAsync(async (req, res, next) => {
 
   res.sendResponse({
     accessToken: signToken(user.email),
-    refreshToken: getRefreshTokenOnMobile(req.isMobile, user.refreshToken),
+    refreshToken: req.getTokenOnMobileRequest(user.refreshToken),
     data: excludeNonDefaults(user)
   })
 
@@ -136,7 +133,7 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
 
   res.sendResponse({
     accessToken: signToken(user.email),
-    refreshToken: getRefreshTokenOnMobile(req.isMobile, user.refreshToken),
+    refreshToken: req.getTokenOnMobileRequest(user.refreshToken),
     status: STATUS.success.created
   })
 })

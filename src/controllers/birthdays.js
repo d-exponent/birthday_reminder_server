@@ -93,7 +93,10 @@ exports.deleteImage = catchAsync(
 )
 
 exports.checkUserOwnsImage = catchAsync(async (req, _, next) => {
-  const { currentUser, params: {imageName} } = req
+  const {
+    currentUser,
+    params: { imageName }
+  } = req
 
   // Check that the image is associated with the current user
   const birthdays = await BirthDay.find({
@@ -102,7 +105,9 @@ exports.checkUserOwnsImage = catchAsync(async (req, _, next) => {
   })
 
   if (birthdays.length === 0)
-    return next(new AppError(`Couldn't find ${imageName} for ${currentUser.name}`, se.notFound))
+    return next(
+      new AppError(`Couldn't find ${imageName} for ${currentUser.name}`, se.notFound)
+    )
 
   const [birthday] = birthdays
   req.birthday = birthday

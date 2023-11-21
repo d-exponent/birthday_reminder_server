@@ -38,17 +38,15 @@ module.exports = () => {
   app.use(compression())
   app.use(express.json())
 
-  app.use(
-    appController.initDB,
-    appController.useMorganOnDev(),
-    appController.assignPropsOnRequest,
-    appController.assignPropsOnResponse
-  )
+  app.use(appController.useMorganOnDev())
+  app.use(appController.initDB)
+  app.use(appController.assignPropsOnRequest)
+  app.use(appController.assignPropsOnResponse)
 
-  app.use(
-    firstRequestManager.prepImagesDir.bind(firstRequestManager),
-    firstRequestManager.setIsFirstRequest.bind(firstRequestManager)
-  )
+  app.get('/isMobile', appController.showIsMobileReq)
+
+  app.use(firstRequestManager.prepImagesDir.bind(firstRequestManager))
+  app.use(firstRequestManager.setIsFirstRequest.bind(firstRequestManager))
 
   app.use('/api/v1', mongoSanitize(), apiV1RoutesController)
   app.use('*', errorController.wildRoutesHandler)
