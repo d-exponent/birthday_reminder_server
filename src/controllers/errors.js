@@ -28,7 +28,7 @@ const sendProductionError = (error, sender) => {
 exports.wildRoutesHandler = ({ method, originalUrl }, _, next) =>
   next(
     new AppError(
-      `\\${method.toUpperCase()}: ${originalUrl}\\ is not allowed on this server`,
+      `<${method.toUpperCase()}: ${originalUrl}> is not allowed on this server`,
       ERROR_STATUS.methodNotAllowed
     )
   )

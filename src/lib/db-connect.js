@@ -8,7 +8,7 @@ const { MONGO_DB_CONNECTION } = require('../settings/constants')
  * @returns connection message on success or error object on error
  */
 const connectMongoDb = async (env = enviroment) => {
-  if (MONGO_DB_CONNECTION.isActive) return
+  if (MONGO_DB_CONNECTION.isActive) return MONGO_DB_CONNECTION.isActiveMessage
 
   try {
     await mongoose.connect(env.mongoDBUri)

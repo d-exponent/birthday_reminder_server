@@ -9,7 +9,13 @@ const commitError = require('../lib/commit-error')
 const { EmailError } = require('../lib/custom-errors')
 const { defaultSelectsAnd, excludeNonDefaults } = require('../lib/utils')
 const { generateAccessCode, timeInMinutes, signToken } = require('../lib/auth')
-const { STATUS, REGEX, USER_ROLES, DELETE_RESPONSE } = require('../settings/constants')
+const {
+  STATUS,
+  REGEX,
+  USER_ROLES,
+  DELETE_RESPONSE,
+  RESPONSE
+} = require('../settings/constants')
 
 const INVALID_TOKEN_ERROR = new AppError(
   'Invalid auth credentials',
@@ -35,37 +41,21 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
   user.accessCodeExpires = timeInMinutes(10)
   await user.save()
 
-  const emailInsatnce = new Email(user.name, user.email)
-  const message = `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
-  const errorMessage = `Error sending ${user.email} an access code`
-
-  if (env.isVercel) {
-    try {
-      /**
-       * Vercel seems to block nodemailer if the emailing action is not executed with async/await
-       * This custom vercel implementation produces a slow response possibly running up to seconds...
-       */
-
-      await emailInsatnce.sendAccessCode(user.accessCode)
-      res.sendResponse({ message })
-    } catch (e) {
-      res.sendResponse({ message: errorMessage })
-      handleCommitError(e.message ?? errorMessage)
-    }
-  } else {
-    /**
-     * Faster response (ms) but without guarantee of success before notifying the client
-     * The client may have to retry if email is not received after a few some seconds
-     */
-
-    emailInsatnce.sendAccessCode(user.accessCode).catch(async () => {
-      try {
-        await emailInsatnce.sendAccessCode(user.accessCode) // TRY AGAIN
-      } catch (e) {
-        handleCommitError(e.message ?? errorMessage)
-      }
+  try {
+    await new Email(user.name, user.email).sendAccessCode(user.accessCode)
+    res.sendResponse({
+      message: `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
     })
-    res.sendResponse({ message })
+  } catch (e) {
+    const errorMessage = `Error sending ${user.email} the access code`
+    res.sendResponse(
+      {
+        message: errorMessage,
+        status: STATUS.error.badConnection
+      },
+      RESPONSE.error
+    )
+    handleCommitError(e.message ?? errorMessage)
   }
 })
 

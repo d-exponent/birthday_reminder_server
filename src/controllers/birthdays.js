@@ -43,7 +43,7 @@ exports.processImageUpload = catchAsync(
           ? birthday.imageCover
           : `${names.toLowerCase().split(' ').join('-')}-${crypto
               .randomBytes(8)
-              .toString('hex')}-${randomDigits(3)}.png`
+              .toString('hex')}-${randomDigits(5)}.png`
 
       await sharp(file.buffer).resize(800).png().toFile(birthdayImageFile(imageName))
       req.body.imageCover = imageName
@@ -92,27 +92,24 @@ exports.deleteImage = catchAsync(
   }
 )
 
-exports.checkUserOwnsImage = catchAsync(async (req, _, next) => {
-  const {
-    currentUser,
-    params: { imageName }
-  } = req
+exports.checkUserOwnsImage = catchAsync(
+  async ({ currentUser, params: { imageName }, ...req }, _, next) => {
+    // Check that the image is associated with the current user
+    const birthdays = await BirthDay.find({
+      owner: currentUser['_id'],
+      imageCover: imageName ?? ''
+    })
 
-  // Check that the image is associated with the current user
-  const birthdays = await BirthDay.find({
-    owner: currentUser['_id'],
-    imageCover: imageName ?? ''
-  })
+    if (birthdays.length === 0)
+      return next(
+        new AppError(`Couldn't find ${imageName} for ${currentUser.name}`, se.notFound)
+      )
 
-  if (birthdays.length === 0)
-    return next(
-      new AppError(`Couldn't find ${imageName} for ${currentUser.name}`, se.notFound)
-    )
-
-  const [birthday] = birthdays
-  req.birthday = birthday
-  next()
-})
+    const [birthday] = birthdays
+    req.birthday = birthday
+    next()
+  }
+)
 
 // ***** FILE CONTROLLERS AND MIDDLEWARES END *****
 

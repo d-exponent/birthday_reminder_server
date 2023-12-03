@@ -22,8 +22,8 @@ exports.timeInMinutes = (minutes = 0) => {
 exports.signToken = (email, type = TOKENS.access) => {
   const allowedTypes = Object.values(TOKENS)
   if (!allowedTypes.includes(type)) {
-    const types = allowedTypes.map(t => `/${t}/`).join(', ')
-    throw new TypeError(`type must be one of ${types}`)
+    const formattedTypes = allowedTypes.map(t => `/${t}/`).join(', ')
+    throw new TypeError(`type must be one of ${formattedTypes}`)
   }
 
   const isAccessToken = type === TOKENS.access
