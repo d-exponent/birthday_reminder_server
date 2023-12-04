@@ -14,7 +14,7 @@ const {
   REGEX,
   USER_ROLES,
   DELETE_RESPONSE,
-  RESPONSE
+  RESPONSE_TYPE
 } = require('../settings/constants')
 
 const INVALID_TOKEN_ERROR = new AppError(
@@ -24,7 +24,7 @@ const INVALID_TOKEN_ERROR = new AppError(
 
 const LOGIN_ERROR = new AppError('Please log in', STATUS.error.unauthorized)
 
-const handleCommitError = message => {
+const logErrorToDatabase = message => {
   commitError(new EmailError(message)).catch(e => {
     // eslint-disable-next-line no-console
     console.error(e.message)
@@ -37,25 +37,35 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
   if (!user || !user.isActive)
     return next(new AppError('The user does not exist', STATUS.error.notFound))
 
-  user.accessCode = generateAccessCode()
+  const accessCode = generateAccessCode()
+  user.accessCode = accessCode
   user.accessCodeExpires = timeInMinutes(10)
-  await user.save()
 
-  try {
-    await new Email(user.name, user.email).sendAccessCode(user.accessCode)
-    res.sendResponse({
+  const results = await Promise.allSettled([
+    user.save(),
+    new Email(user.name, user.email).sendAccessCode(accessCode)
+  ])
+
+  if (results.every(result => result.status === 'fulfilled')) {
+    return res.sendResponse({
       message: `An access code has been sent to ${user.email}. Expires in ten (10) minutes`
     })
-  } catch (e) {
-    const errorMessage = `Error sending ${user.email} the access code`
+  }
+
+  const [, sentEmail] = results
+  const errorResponseType = RESPONSE_TYPE.error
+
+  if (sentEmail.status === 'rejected') {
     res.sendResponse(
-      {
-        message: errorMessage,
-        status: STATUS.error.badConnection
-      },
-      RESPONSE.error
+      { message: `Error sending ${user.email} the access code` },
+      errorResponseType
     )
-    handleCommitError(e.message ?? errorMessage)
+    logErrorToDatabase(sentEmail.reason)
+  } else {
+    res.sendResponse(
+      { message: 'There was an error processing your request. Please try again!' },
+      errorResponseType
+    )
   }
 })
 
@@ -86,7 +96,7 @@ exports.submitAccessCode = catchAsync(async (req, res, next) => {
     try {
       await new Email(user.name, user.email).sendWelcome()
     } catch (e) {
-      handleCommitError(e.message ?? 'Unkown Error')
+      logErrorToDatabase(e.message ?? 'Unkown Error')
     }
   }
 })
@@ -128,9 +138,7 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
   })
 })
 
-exports.protect = catchAsync(async (req, _, next) => {
-  const { authorization } = req.headers
-
+exports.protect = catchAsync(async ({ headers: { authorization }, ...req }, _, next) => {
   const token =
     authorization && REGEX.bearerJwtToken.test(authorization)
       ? authorization.split(' ')[1]
@@ -158,19 +166,19 @@ exports.setUserForlogout = async (req, _, next) => {
   next()
 }
 
-exports.permit = (...args) => {
+exports.permit = (...roles) => {
   // Ensure at least one role is passed
-  if (!args.length) throw new Error('restrictTo requires at least one valid role')
+  if (!roles.length) throw new Error('restrictTo requires at least one valid role')
 
   // Ensure only valid roles are passed
-  args.forEach(arg => {
-    if (!USER_ROLES.includes(arg)) {
-      throw new Error(`${arg} is not a valid role`)
+  roles.forEach(role => {
+    if (!USER_ROLES.includes(role)) {
+      throw new Error(`${role} is not a valid role`)
     }
   })
 
-  return (req, _, next) => {
-    if (!args.includes(req.currentUser.role)) {
+  return ({ currentUser: { role } }, _, next) => {
+    if (!roles.includes(role)) {
       return next(
         new AppError(
           'You do not have permission to access this resource',
