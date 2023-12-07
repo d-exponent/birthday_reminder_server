@@ -28,8 +28,8 @@ const sendProductionError = (error, sender) => {
 exports.wildRoutesHandler = ({ method, originalUrl }, _, next) =>
   next(
     new AppError(
-      `<${method.toUpperCase()}: ${originalUrl}> is not allowed on this server`,
-      ERROR_STATUS.methodNotAllowed
+      `<${method.toUpperCase()}: ${originalUrl}> is not implemented on this server`,
+      ERROR_STATUS.notImplemeted
     )
   )
 
@@ -59,10 +59,10 @@ exports.globalErrorHandler = (err, _, res, next) => {
         error = handleValidationError(error)
         break
       case 'JsonWebTokenError':
-        error = new AppError('Invalid Token, please login!', ERROR_STATUS.forbidden)
+        error = new AppError('Invalid Token, please login!', ERROR_STATUS.unauthorized)
         break
       case 'TokenExpiredError':
-        error = new AppError('Expired token, please login!', ERROR_STATUS.forbidden)
+        error = new AppError('Expired token, please login!', ERROR_STATUS.unauthorized)
         break
       case 'MongooseError':
         error = new AppError(

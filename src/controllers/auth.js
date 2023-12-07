@@ -12,7 +12,7 @@ const { generateAccessCode, timeInMinutes, signToken } = require('../lib/auth')
 const {
   STATUS,
   REGEX,
-  USER_ROLES,
+  VALID_USER_ROLES,
   DELETE_RESPONSE,
   RESPONSE_TYPE
 } = require('../settings/constants')
@@ -21,8 +21,6 @@ const INVALID_TOKEN_ERROR = new AppError(
   'Invalid auth credentials',
   STATUS.error.unauthorized
 )
-
-const LOGIN_ERROR = new AppError('Please log in', STATUS.error.unauthorized)
 
 const logErrorToDatabase = message => {
   commitError(new EmailError(message)).catch(e => {
@@ -153,7 +151,8 @@ exports.protect = catchAsync(async ({ headers: { authorization }, ...req }, _, n
   )
 
   if (!user || !user.isActive) return next(INVALID_TOKEN_ERROR)
-  if (!user.isVerified || user.refreshToken === undefined) return next(LOGIN_ERROR)
+  if (!user.isVerified || user.refreshToken === undefined)
+    return next(new AppError('Please log in', STATUS.error.unauthorized))
 
   req.currentUser = user
   next()
@@ -172,7 +171,7 @@ exports.permit = (...roles) => {
 
   // Ensure only valid roles are passed
   roles.forEach(role => {
-    if (!USER_ROLES.includes(role)) {
+    if (!VALID_USER_ROLES.includes(role)) {
       throw new Error(`${role} is not a valid role`)
     }
   })

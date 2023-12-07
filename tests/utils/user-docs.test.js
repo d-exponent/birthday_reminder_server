@@ -1,7 +1,7 @@
 const {
   DEFAULT_SELECTS,
   defaultSelectsAnd,
-  filterOnly,
+  getModifiedByArgs,
   excludeNonDefaults
 } = require('../../src/lib/utils')
 
@@ -37,17 +37,17 @@ describe('defaultSelectsAnd function', () => {
   })
 })
 
-describe('filterOnly function', () => {
+describe('getModifiedByArgs function', () => {
   describe('return', () => {
     test('', () => {
-      expect(filterOnly(MOCK_DOCUMENT, 'foo bar')).toStrictEqual({
+      expect(getModifiedByArgs(MOCK_DOCUMENT, 'foo bar')).toStrictEqual({
         foo: 'foo',
         bar: 'bar'
       })
     })
 
     test(`object properties with keys in ${DEFAULT_SELECTS}`, () => {
-      expect(filterOnly(MOCK_DOCUMENT, 'foo', 'bar', 'name')).toStrictEqual({
+      expect(getModifiedByArgs(MOCK_DOCUMENT, 'foo', 'bar', 'name')).toStrictEqual({
         name: 'foo',
         foo: 'foo',
         bar: 'bar'
@@ -55,11 +55,13 @@ describe('filterOnly function', () => {
     })
 
     test('empty object if no arguments are passed', () => {
-      expect(filterOnly(MOCK_DOCUMENT)).toStrictEqual({})
+      expect(getModifiedByArgs(MOCK_DOCUMENT)).toStrictEqual({})
     })
 
     test('ignore falsy arguments', () => {
-      expect(filterOnly(MOCK_DOCUMENT, null, undefined, 0, [], '')).toStrictEqual({})
+      expect(getModifiedByArgs(MOCK_DOCUMENT, null, undefined, 0, [], '')).toStrictEqual(
+        {}
+      )
     })
   })
 })

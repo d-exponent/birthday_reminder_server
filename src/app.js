@@ -30,6 +30,7 @@ const corsConfig = {
 
 module.exports = () => {
   app.get('/', appController.showAppIsRunning)
+
   app.options('*', cors(corsConfig))
 
   app.use(cors(corsConfig))

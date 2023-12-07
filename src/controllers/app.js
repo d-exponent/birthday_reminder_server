@@ -14,9 +14,9 @@ const defineGetter = (obj, name, getter) => {
 }
 
 exports.assignPropsOnRequest = (req, res, next) => {
-  defineGetter(req, 'isSecure', function isSecure() {
-    return env.isVercel && env.isProduction ? true : this.secure
-  })
+  defineGetter(req, 'isSecure', () =>
+    env.isVercel && env.isProduction ? true : req.secure
+  )
 
   defineGetter(req, 'domain', function domain() {
     const proto = this.isSecure ? 'https' : 'http' // so it works on vercel or any other deployment platform
@@ -47,7 +47,6 @@ exports.assignPropsOnRequest = (req, res, next) => {
   req.getTokenOnMobileRequest = function getTokenOnMobileRequest(token) {
     return this.isMobile ? token : undefined
   }
-
   next()
 }
 

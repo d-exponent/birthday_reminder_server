@@ -14,7 +14,8 @@ exports.STATUS = {
     methodNotAllowed: 405,
     badConnection: 502,
     gatewayTimeOut: 504,
-    serverError: 500
+    serverError: 500,
+    notImplemeted: 501
   }
 }
 
@@ -40,7 +41,7 @@ exports.TOKENS = {
 
 exports.SCHEMA_OPTIONS = { toJSON: { virtuals: true } }
 
-exports.USER_ROLES = ['user', 'admin']
+exports.VALID_USER_ROLES = ['user', 'admin']
 
 exports.REGEX = {
   accessCode: /^[0-9]{4,8}$/,

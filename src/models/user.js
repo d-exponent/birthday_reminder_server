@@ -1,6 +1,6 @@
 /* eslint-disable func-names */
 const { Schema, model } = require('mongoose')
-const { SCHEMA_OPTIONS, USER_ROLES, REGEX } = require('../settings/constants')
+const { SCHEMA_OPTIONS, VALID_USER_ROLES, REGEX } = require('../settings/constants')
 const { titleCaseNames } = require('./common')
 const Birthday = require('./birthday')
 
@@ -27,9 +27,9 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      default: USER_ROLES[0], // user
+      default: VALID_USER_ROLES[0], // user
       enum: {
-        values: USER_ROLES,
+        values: VALID_USER_ROLES,
         message: `{VALUE} is not a valid role`
       }
     },
