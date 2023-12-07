@@ -18,6 +18,12 @@ const {
   BIRTHDAYS_IMAGES_DIR
 } = require('../settings/constants')
 
+const attachHttpFullPathToImageCover = (currentHttpDomain, birthdayDoc) => {
+  if (birthdayDoc.imageCover) {
+    birthdayDoc.imageCover = `${currentHttpDomain}/api/v1/users/me/birthdays/images/${birthdayDoc.imageCover}`
+  }
+}
+
 const birthdayImageFile = imageName => path.join(BIRTHDAYS_IMAGES_DIR, imageName)
 
 const fileFilter = (_, file, cb) => {
@@ -36,17 +42,17 @@ const fileFilter = (_, file, cb) => {
 exports.upload = multer({ storage: multer.memoryStorage(), fileFilter })
 
 exports.processImageUpload = catchAsync(
-  async ({ currentUser: { name: names }, file, birthday, ...req }, _, next) => {
+  async ({ currentUser: { name: names }, file, birthday, body, method }, _, next) => {
     if (file) {
       const imageName =
-        req.method === 'PATCH' && birthday.imageCover
+        method === 'PATCH' && birthday.imageCover
           ? birthday.imageCover
           : `${names.toLowerCase().split(' ').join('-')}-${crypto
-              .randomBytes(8)
+              .randomBytes(5)
               .toString('hex')}-${randomDigits(5)}.png`
 
       await sharp(file.buffer).resize(800).png().toFile(birthdayImageFile(imageName))
-      req.body.imageCover = imageName
+      body.imageCover = imageName
     }
     next()
   }
@@ -113,59 +119,75 @@ exports.checkUserOwnsImage = catchAsync(
 
 // ***** FILE CONTROLLERS AND MIDDLEWARES END *****
 
-exports.addBirthday = catchAsync(async ({ params: { ownerId }, body }, res) => {
+exports.addBirthday = catchAsync(async ({ params: { ownerId }, body, domain }, res) => {
+  const newBirthday = await BirthDay.create({ ...body, owner: ownerId })
+
+  attachHttpFullPathToImageCover(domain, newBirthday)
   res.sendResponse({
     status: ss.created,
-    data: await BirthDay.create({ ...body, owner: ownerId })
+    data: newBirthday
   })
 })
 
-exports.getBirthdays = catchAsync(async ({ body, query: reqQuery }, res, next) => {
-  let mongooseQuery = BirthDay.find(body)
+exports.getBirthdays = catchAsync(
+  async ({ body, query: reqQuery, domain }, res, next) => {
+    let mongooseQuery = BirthDay.find(body)
 
-  let errorMessage = 'There are no birthdays at this time'
+    let errorMessage = 'There are no birthdays at this time'
 
-  if (body.owner) {
-    mongooseQuery = mongooseQuery.select('-owner')
-    errorMessage = 'You have no saved birthdays'
-  } else {
-    mongooseQuery = mongooseQuery.populate({
-      path: 'owner',
-      select: 'name email'
+    if (body.owner) {
+      mongooseQuery = mongooseQuery.select('-owner')
+      errorMessage = 'You have no saved birthdays'
+    } else {
+      mongooseQuery = mongooseQuery.populate({
+        path: 'owner',
+        select: 'name email'
+      })
+    }
+
+    const query = new BuildMongooseQuery(mongooseQuery, reqQuery)
+      .filter()
+      .fields()
+      .page()
+      .sort()
+
+    const birthdays = await query.mongooseQuery
+
+    if (!birthdays.length) {
+      return next(new AppError(errorMessage, se.notFound))
+    }
+
+    birthdays.forEach(birthday => attachHttpFullPathToImageCover(domain, birthday))
+
+    res.sendResponse({
+      results: birthdays.length,
+      data: birthdays
     })
   }
+)
 
-  const query = new BuildMongooseQuery(mongooseQuery, reqQuery)
-    .filter()
-    .fields()
-    .page()
-    .sort()
+exports.getBirthday = catchAsync(
+  async ({ params: { id }, currentUser, domain }, res, next) => {
+    const birthday = await BirthDay.findById(id).populate(
+      currentUser && currentUser.role === 'admin' ? 'owner' : ''
+    )
 
-  const birthdays = await query.mongooseQuery
+    if (!birthday) return next(new AppError("The birthday doesn't exist", se.notFound))
 
-  if (!birthdays.length) {
-    return next(new AppError(errorMessage, se.notFound))
+    attachHttpFullPathToImageCover(domain, birthday)
+    res.sendResponse({ data: birthday })
   }
+)
+
+exports.updateBirthday = catchAsync(async ({ body, params: { id }, domain }, res) => {
+  // Prepend http(S) path to image file name
+
+  const updatedBirthday = await BirthDay.findByIdAndUpdate(id, body, FIND_UPDATE_OPTIONS)
+
+  attachHttpFullPathToImageCover(domain, updatedBirthday)
 
   res.sendResponse({
-    results: birthdays.length,
-    data: birthdays
-  })
-})
-
-exports.getBirthday = catchAsync(async ({ params: { id }, currentUser }, res, next) => {
-  const birthday = await BirthDay.findById(id).populate(
-    currentUser && currentUser.role === 'admin' ? 'owner' : ''
-  )
-
-  if (!birthday) return next(new AppError("The birthday doesn't exist", se.notFound))
-
-  res.sendResponse({ data: birthday })
-})
-
-exports.updateBirthday = catchAsync(async ({ body, params: { id } }, res) => {
-  res.sendResponse({
-    data: await BirthDay.findByIdAndUpdate(id, body, FIND_UPDATE_OPTIONS)
+    data: updatedBirthday
   })
 })
 

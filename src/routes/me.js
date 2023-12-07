@@ -9,6 +9,7 @@ const multerCatchImageCover = birthdayController.upload.single('cover')
 router.post('/sign-up', userController.setRequestBody, userController.createUser)
 
 router.use(authController.protect)
+
 router
   .route('/')
   .delete(authController.setUserForlogout, meController.deleteMe)

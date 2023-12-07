@@ -2,6 +2,7 @@
 const { Schema, model } = require('mongoose')
 const { titleCaseNames } = require('./common')
 
+
 const birthdaySchema = new Schema({
   name: {
     type: String,
@@ -28,6 +29,11 @@ const birthdaySchema = new Schema({
   comments: String,
   created_at: { type: Date, default: Date.now() }
 })
+
+// birthdaySchema.virtual('imageUri').get(function (){
+
+//   return this
+// })
 
 birthdaySchema.pre('save', function (next) {
   this.name = titleCaseNames(this.name)

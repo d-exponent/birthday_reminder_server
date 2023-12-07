@@ -13,6 +13,7 @@ class FirstRequestManager {
   hasLoggedDbConnect = false
   hasCreatedImagesDir = false
 
+
   logDbConnect(msg) {
     if (!this.isFirstRequest) return
     console.log(msg)

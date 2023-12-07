@@ -39,11 +39,12 @@ module.exports = () => {
   app.use(compression())
   app.use(express.json())
 
-  app.use(appController.useMorganOnDev())
   app.use(appController.initDB)
   app.use(appController.assignPropsOnRequest)
   app.use(appController.assignPropsOnResponse)
+  app.use(appController.useMorganOnDev())
 
+  // Utility endpoint for Debugging
   app.get('/isMobile', appController.showIsMobileReq)
 
   app.use(firstRequestManager.prepImagesDir.bind(firstRequestManager))

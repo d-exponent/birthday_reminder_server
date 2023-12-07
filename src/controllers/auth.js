@@ -136,7 +136,9 @@ exports.getAccessToken = catchAsync(async (req, res, next) => {
   })
 })
 
-exports.protect = catchAsync(async ({ headers: { authorization }, ...req }, _, next) => {
+exports.protect = catchAsync(async (req, _, next) => {
+
+  const { authorization } = req.headers
   const token =
     authorization && REGEX.bearerJwtToken.test(authorization)
       ? authorization.split(' ')[1]

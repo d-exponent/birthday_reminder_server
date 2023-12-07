@@ -27,7 +27,7 @@ exports.getModifiedByArgs = (doc, ...args) => {
   }
 
   const reducer = (acc, cur) => {
-    if (typeof cur === 'string' && cur.length === 0) {
+    if (typeof cur === 'string' && cur.length) {
       if (cur.includes(' ')) cur.split(' ').forEach(c => getDefined(acc, c))
       else getDefined(acc, cur)
     }
