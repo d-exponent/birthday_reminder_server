@@ -7,7 +7,7 @@ const ERROR_STATUS = STATUS.error
 let errorMsg
 
 const handleDuplicateFeilds = ({ keyValue }) => {
-  errorMsg = `${Object.values(keyValue)[0]} already exists.`
+  errorMsg = `${Object.values(keyValue)[0]} is already associated with another record.`
   return new AppError(errorMsg, ERROR_STATUS.serverError)
 }
 

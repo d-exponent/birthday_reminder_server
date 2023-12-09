@@ -1,10 +1,9 @@
-/* eslint-disable func-names */
-const { Schema, model } = require('mongoose')
+const mongoose = require('mongoose')
 const { SCHEMA_OPTIONS, VALID_USER_ROLES, REGEX } = require('../settings/constants')
 const { titleCaseNames } = require('./common')
 const Birthday = require('./birthday')
 
-const userSchema = new Schema(
+const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -44,31 +43,40 @@ const userSchema = new Schema(
   SCHEMA_OPTIONS
 )
 
-userSchema.pre('save', function (next) {
+userSchema.pre('save', function titleNames(next) {
   this.name = titleCaseNames(this.name)
   next()
 })
 
-userSchema.pre('update', function (next) {
+userSchema.pre('update', function modifyUpdateTime(next) {
   this.updatedAt = new Date()
   next()
 })
 
-userSchema.pre(/^find/, function (next) {
+userSchema.pre(/^find/, function deselectVersion(next) {
   this.select('-__v')
   next()
 })
 
-userSchema.pre('findOneAndDelete', async function (next) {
+userSchema.pre('findOneAndDelete', async function saveDeletedUserIdForPostQuery(next) {
   const query = this.getQuery()
-  const userToDelete = await this.model.findOne(query)
-  // eslint-disable-next-line no-underscore-dangle
-  this['_userId'] = userToDelete['_id']
+  try {
+    const userToDelete = await this.model.findOne(query)
+    this['_userId'] = userToDelete['_id']
+  } catch (_) {
+    /* empty */
+  }
   next()
 })
 
-userSchema.post('findOneAndDelete', async function () {
-  await Birthday.deleteMany({ owner: this['_userId'] })
+userSchema.post('findOneAndDelete', async function deleteBirthdaysForDeletedUser() {
+  if (this['_userId']) {
+    try {
+      await Birthday.deleteMany({ owner: this['_userId'] })
+    } catch (_) {
+      /* empty */
+    }
+  }
 })
 
-module.exports = model('User', userSchema)
+module.exports = mongoose.model('User', userSchema)

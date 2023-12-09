@@ -1,9 +1,7 @@
-/* eslint-disable func-names */
-const { Schema, model } = require('mongoose')
+const mongoose = require('mongoose')
 const { titleCaseNames } = require('./common')
 
-
-const birthdaySchema = new Schema({
+const birthdaySchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'The birthday must have a name ']
@@ -22,27 +20,41 @@ const birthdaySchema = new Schema({
     index: true,
     required: [true, 'A birthday must have a day']
   },
-  email: String,
-  phone: String,
-  owner: { type: Schema.Types.ObjectId, ref: 'User' },
+  email: {
+    type: String,
+    index: {
+      unique: true,
+      partialFilterExpression: { email: { $type: 'string' } }
+    }
+  },
+  phone: {
+    type: String,
+    index: {
+      unique: true,
+      partialFilterExpression: { phone: { $type: 'string' } }
+    }
+  },
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   imageCover: String,
   comments: String,
   created_at: { type: Date, default: Date.now() }
 })
 
-// birthdaySchema.virtual('imageUri').get(function (){
+birthdaySchema.methods.prependURLEndpointToImageCover =
+  function prependURLEndpointToImageCover(domain) {
+    if (this.imageCover) {
+      this.imageCover = `${domain}/api/v1/users/me/birthdays/images/${this.imageCover}`
+    }
+  }
 
-//   return this
-// })
-
-birthdaySchema.pre('save', function (next) {
+birthdaySchema.pre('save', function titleNames(next) {
   this.name = titleCaseNames(this.name)
   next()
 })
 
-birthdaySchema.pre(/^find/, function (next) {
+birthdaySchema.pre(/^find/, function deselectVersion(next) {
   this.select('-__v')
   next()
 })
 
-module.exports = model('birthday', birthdaySchema)
+module.exports = mongoose.model('birthday', birthdaySchema)

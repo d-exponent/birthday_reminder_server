@@ -18,12 +18,6 @@ const {
   BIRTHDAYS_IMAGES_DIR
 } = require('../settings/constants')
 
-const attachHttpFullPathToImageCover = (currentHttpDomain, birthdayDoc) => {
-  if (birthdayDoc.imageCover) {
-    birthdayDoc.imageCover = `${currentHttpDomain}/api/v1/users/me/birthdays/images/${birthdayDoc.imageCover}`
-  }
-}
-
 const birthdayImageFile = imageName => path.join(BIRTHDAYS_IMAGES_DIR, imageName)
 
 const fileFilter = (_, file, cb) => {
@@ -122,7 +116,8 @@ exports.checkUserOwnsImage = catchAsync(
 exports.addBirthday = catchAsync(async ({ params: { ownerId }, body, domain }, res) => {
   const newBirthday = await BirthDay.create({ ...body, owner: ownerId })
 
-  attachHttpFullPathToImageCover(domain, newBirthday)
+  newBirthday.prependURLEndpointToImageCover(domain)
+
   res.sendResponse({
     status: ss.created,
     data: newBirthday
@@ -157,7 +152,7 @@ exports.getBirthdays = catchAsync(
       return next(new AppError(errorMessage, se.notFound))
     }
 
-    birthdays.forEach(birthday => attachHttpFullPathToImageCover(domain, birthday))
+    birthdays.forEach(birthday => birthday.prependURLEndpointToImageCover(domain))
 
     res.sendResponse({
       results: birthdays.length,
@@ -174,7 +169,7 @@ exports.getBirthday = catchAsync(
 
     if (!birthday) return next(new AppError("The birthday doesn't exist", se.notFound))
 
-    attachHttpFullPathToImageCover(domain, birthday)
+    birthday.prependURLEndpointToImageCover(domain)
     res.sendResponse({ data: birthday })
   }
 )
@@ -184,7 +179,7 @@ exports.updateBirthday = catchAsync(async ({ body, params: { id }, domain }, res
 
   const updatedBirthday = await BirthDay.findByIdAndUpdate(id, body, FIND_UPDATE_OPTIONS)
 
-  attachHttpFullPathToImageCover(domain, updatedBirthday)
+  updatedBirthday.prependURLEndpointToImageCover(domain)
 
   res.sendResponse({
     data: updatedBirthday
