@@ -1,49 +1,91 @@
 const nodemailer = require('nodemailer')
+const { convertDaysToMilliseconds } = require('../cron/utils')
 const env = require('../settings/env')
 
-const isExistAndShow = (param, message) => (param ? `${message}: ${param}` : '')
+/**
+ *
+ * @param {string | undefined} param
+ * @param {string} message
+ * @returns {string} message : param if param is true else empty string
+ */
+const concatenateIfExist = (param, message) => (param ? `${message}: ${param}` : '')
+
+/**
+ * @param {number} days - Defaults to zero (0)
+ * @returns formatted date e.g => Thursday, December 14
+ */
+const getFormattedDate = (days = 0) => {
+  const totalMilliSeconds = Date.now() + convertDaysToMilliseconds(days)
+
+  return new Date(totalMilliSeconds).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+/**
+ *
+ * @param { 1| 7 | 14 | 30 } daysDue - defaults to zero (today)
+ * @returns "tomorrow" | "one week" | "two weeks" | "one month" | "today"
+ */
+const getDueDateDescription = daysDue => {
+  const descriptions = {
+    1: 'tomorrow',
+    7: 'one week',
+    14: 'two weeks',
+    30: 'one month'
+  }
+  return descriptions[daysDue] ?? 'today'
+}
+
+const createTransport = email => {
+  const prodConfig = {
+    service: env.appEmailService,
+    auth: { user: email, pass: env.appEmailPass }
+  }
+
+  const devConfig = {
+    host: env.devEmailHost,
+    port: env.devEmailPort,
+    auth: { user: env.devEmailUser, pass: env.devEmailPassword }
+  }
+
+  return nodemailer.createTransport(env.isProduction ? prodConfig : devConfig)
+}
 
 module.exports = class Email {
-  appEmail = env.appEmail
-
+  /**
+   *
+   * @param {string} userName
+   * @param {string} userEmail
+   */
   constructor(userName, userEmail) {
     this.userName = userName
     this.userEmail = userEmail
   }
 
-  transport() {
-    const prodConfig = {
-      service: env.appEmailService,
-      auth: { user: this.appEmail, pass: env.appEmailPass }
-    }
-
-    const devConfig = {
-      host: env.devEmailHost,
-      port: env.devEmailPort,
-      auth: { user: env.devEmailUser, pass: env.devEmailPassword }
-    }
-
-    return nodemailer.createTransport(env.isProduction ? prodConfig : devConfig)
-  }
-
-  async send(params) {
-    await this.transport().sendMail({
-      from: `Eclipse Reminder <${this.appEmail}>`,
+  async #sendEmail(params) {
+    const { appEmail } = env
+    await createTransport(appEmail).sendMail({
+      from: `Eclipse Reminder <${appEmail}>`,
       to: this.userEmail,
       text: params.text,
       subject: params.subject
     })
   }
 
+  /**
+   * Sends a welcome message to a user
+   */
   async sendWelcome() {
-    await this.send({
+    await this.#sendEmail({
       subject: 'Welcome to the Eclipse Birthday Reminder Family 🤗',
       text: `
-
-      Congratulations ${this.userName}🎉✨, your account has been verified.
+      Welcome ${this.userName}, your account has been verified 🎉✨.
 
       We look forward to helping you keep track of the birtdays of those special to you.
-      NEVER FOR GET A BIRTHDAY AGAIN
+      NEVER FORGET A BIRTHDAY EVER AGAIN
 
       Regards,
       Eclipse Birthday Reminder
@@ -51,8 +93,12 @@ module.exports = class Email {
     })
   }
 
+  /**
+   * Sends the access code to the user's email address
+   * @param { number } accessCode
+   */
   async sendAccessCode(accessCode) {
-    await this.send({
+    await this.#sendEmail({
       subject: `${this.userName} your one time verification code!`,
       text: `
       Hi ${this.userName}!
@@ -68,18 +114,23 @@ module.exports = class Email {
     })
   }
 
-  async sendBirthdayReminder({ name, phone, email }) {
-    await this.send({
+  /**
+   * Sends custom birthday reminder message to user
+   * @param { 0 | 1 | 7 | 14 | 30 } days
+   * @param {{ name: string; phone: string; email: string }} details
+   */
+  async sendBirthdayReminder(days, { name, phone, email }) {
+    await this.#sendEmail({
       subject: `BIRTHDAY ALERT FOR ${this.userName}  `,
 
       text: `
-      It's ${name}'s birthday today.
+      It's ${name}'s birthday ${getDueDateDescription(days)}.
 
-      This is a reminder to wish them a happy birthday
+      Birthday Date: ${getFormattedDate(days)}
 
-      ${phone || email ? "Celebrant's Details : " : ''}
-      ${isExistAndShow(phone, 'Phone Number: ')}
-      ${isExistAndShow(email, 'Email Address: ')}
+      ${phone || email ? "Celebrant's Details" : ''}
+      ${concatenateIfExist(phone, 'Phone Number')}
+      ${concatenateIfExist(email, 'Email Address')}
 
       Regards,
       Eclipse Birthday Reminder

@@ -4,7 +4,7 @@ const { env } = process
 
 module.exports = {
   // for birthday reminder job
-  page: env.PAGE ? Number(env.page) : undefined,
+  page: parseInt(env.page, 10) || 5000,
 
   // App server settings
   nodeEnv: env.NODE_ENV,
@@ -38,7 +38,7 @@ module.exports = {
 
   isVercel: env.DEPLOYMENT === 'vercel',
 
-  get mongoDBUri() {
+  get databaseUri() {
     return `mongodb+srv://${this.dbUsername}:${this.dbPassword}@cluster0.ntzames.mongodb.net/${this.db}?retryWrites=true&w=majority`
   },
 

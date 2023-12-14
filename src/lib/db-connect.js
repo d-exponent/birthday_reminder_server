@@ -11,7 +11,7 @@ const connectMongoDb = async (env = enviroment) => {
   if (MONGO_DB_CONNECTION.isActive) return MONGO_DB_CONNECTION.isActiveMessage
 
   try {
-    await mongoose.connect(env.mongoDBUri)
+    await mongoose.connect(env.databaseUri)
     MONGO_DB_CONNECTION.isActive = true
     return MONGO_DB_CONNECTION.connectSuccessMessage
   } catch (e) {

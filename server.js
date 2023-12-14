@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+
 const mongoose = require('mongoose')
 const env = require('./src/settings/env')
 const app = require('./src/app')
