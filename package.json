@@ -16,7 +16,7 @@
     "type": "git",
     "url": "https://github.com/d-exponent/birthday_reminder_server.git"
   },
-  "author": "Desmond Odion",
+  "author": "Desmond Odion eclipse.dev@icloud.com",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/d-exponent/birthday_reminder_server.git"
@@ -41,7 +41,6 @@
     "sharp": "^0.32.4"
   },
   "devDependencies": {
-    "@faker-js/faker": "^8.0.2",
     "cross-env": "^7.0.3",
     "eslint": "^8.47.0",
     "eslint-config-airbnb-base": "^15.0.0",

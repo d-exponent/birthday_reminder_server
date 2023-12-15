@@ -1,42 +1,41 @@
 const nodemailer = require('nodemailer')
-const { convertDaysToMilliseconds } = require('../cron/utils')
+
 const env = require('../settings/env')
+const { daysToMilliseconds } = require('../lib/utils')
 
 /**
- *
+ * Concatenates param to message if param is true
  * @param {string | undefined} param
  * @param {string} message
- * @returns {string} message : param if param is true else empty string
+ * @returns {string}
  */
 const concatenateIfExist = (param, message) => (param ? `${message}: ${param}` : '')
 
 /**
- * @param {number} days - Defaults to zero (0)
+ * @param { number } days - Defaults to zero (0)
  * @returns formatted date e.g => Thursday, December 14
  */
-const getFormattedDate = (days = 0) => {
-  const totalMilliSeconds = Date.now() + convertDaysToMilliseconds(days)
-
-  return new Date(totalMilliSeconds).toLocaleDateString('en-US', {
+const getFormattedDate = (days = 0) =>
+  new Date(Date.now() + daysToMilliseconds(days)).toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric'
   })
-}
 
 /**
  *
- * @param { 1| 7 | 14 | 30 } daysDue - defaults to zero (today)
+ * @param { 1 | 7 | 14 | 30 } daysDue - defaults to zero (today)
  * @returns "tomorrow" | "one week" | "two weeks" | "one month" | "today"
  */
-const getDueDateDescription = daysDue => {
+const getDueDateDescription = (daysDue = 0) => {
   const descriptions = {
+    0: 'today',
     1: 'tomorrow',
-    7: 'one week',
-    14: 'two weeks',
-    30: 'one month'
+    7: 'in one week',
+    14: 'in two weeks',
+    30: 'in one month'
   }
-  return descriptions[daysDue] ?? 'today'
+  return descriptions[daysDue]
 }
 
 const createTransport = email => {
@@ -85,6 +84,7 @@ module.exports = class Email {
       Welcome ${this.userName}, your account has been verified 🎉✨.
 
       We look forward to helping you keep track of the birtdays of those special to you.
+
       NEVER FORGET A BIRTHDAY EVER AGAIN
 
       Regards,
@@ -116,19 +116,18 @@ module.exports = class Email {
 
   /**
    * Sends custom birthday reminder message to user
-   * @param { 0 | 1 | 7 | 14 | 30 } days
+   * @param { 0 | 1 | 7 | 14 | 30 } daysDue
    * @param {{ name: string; phone: string; email: string }} details
    */
-  async sendBirthdayReminder(days, { name, phone, email }) {
+  async sendBirthdayReminder({ name, phone, email, daysDue }) {
+    // Someone please help with a proper message 😅
     await this.#sendEmail({
       subject: `BIRTHDAY ALERT FOR ${this.userName}  `,
 
       text: `
-      It's ${name}'s birthday ${getDueDateDescription(days)}.
-
-      Birthday Date: ${getFormattedDate(days)}
-
-      ${phone || email ? "Celebrant's Details" : ''}
+      It's ${name}'s birthday ${getDueDateDescription(daysDue)} ✨🎉.
+      
+      Birthday Date: ${getFormattedDate(daysDue)}
       ${concatenateIfExist(phone, 'Phone Number')}
       ${concatenateIfExist(email, 'Email Address')}
 

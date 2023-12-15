@@ -39,7 +39,10 @@ module.exports = {
   isVercel: env.DEPLOYMENT === 'vercel',
 
   get databaseUri() {
-    return `mongodb+srv://${this.dbUsername}:${this.dbPassword}@cluster0.ntzames.mongodb.net/${this.db}?retryWrites=true&w=majority`
+    const { db } = this
+    return this.isProduction
+      ? `mongodb+srv://${this.dbUsername}:${this.dbPassword}@cluster0.ntzames.mongodb.net/${db}?retryWrites=true&w=majority`
+      : `mongodb://localhost:27017/${db}`
   },
 
   get isProduction() {

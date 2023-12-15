@@ -9,6 +9,7 @@ const { STATUS, RESPONSE, TOKENS } = require('../settings/constants')
 const defineGetter = (obj, name, getter) => {
   Object.defineProperty(obj, name, {
     configurable: false,
+    enumerable: false,
     get: getter
   })
 }
@@ -19,13 +20,13 @@ exports.assignPropsOnRequest = (req, res, next) => {
   )
 
   defineGetter(req, 'domain', function domain() {
-    const proto = this.isSecure ? 'https' : 'http' // so it works on vercel or any other deployment platform
-    return `${proto}://${this.get('host')}`
+    return `${this.isSecure ? 'https' : 'http'}://${this.get('host')}`
   })
 
   defineGetter(req, 'isMobile', function isMobile() {
-    if (this.headers?.platform === 'mobile') return true
-    return userAgent.parse(this.headers['user-agent']).isMobile
+    return this.headers.platform === 'mobile'
+      ? true
+      : userAgent.parse(this.headers['user-agent']).isMobile
   })
 
   req.refreshTokenManager = function refreshTokenManager(email) {
@@ -69,7 +70,9 @@ const connectLogger = firstRequestManger.logDbConnect.bind(firstRequestManger)
 
 // App wide middlewares
 exports.initDB = (_, __, next) => {
-  connect().then(connectLogger).catch(connectLogger)
+  if (env.isVercel) {
+    connect().then(connectLogger).catch(connectLogger)
+  }
   next()
 }
 

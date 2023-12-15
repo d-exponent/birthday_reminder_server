@@ -4,10 +4,10 @@ const { MONGO_DB_CONNECTION } = require('../settings/constants')
 
 /**
  * Connects to mongoDB if there is no active connection
- * @param {*} env
+ * @param {{databaseUri: string}} env
  * @returns connection message on success or error object on error
  */
-const connectMongoDb = async (env = enviroment) => {
+module.exports = async (env = enviroment) => {
   if (MONGO_DB_CONNECTION.isActive) return MONGO_DB_CONNECTION.isActiveMessage
 
   try {
@@ -19,5 +19,3 @@ const connectMongoDb = async (env = enviroment) => {
     return Promise.reject(e.message)
   }
 }
-
-module.exports = connectMongoDb

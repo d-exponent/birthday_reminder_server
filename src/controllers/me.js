@@ -1,17 +1,14 @@
 const AppError = require('../lib/app-error')
 const Birthday = require('../models/birthday')
 const catchAsync = require('../lib/catch-async')
-const { STATUS } = require('../settings/constants')
+const { STATUS, DELETE_RESPONSE } = require('../settings/constants')
 
 exports.deleteMe = catchAsync(async (req, res) => {
   req.currentUser.isActive = false
   req.currentUser.isVerified = false
-  await req.currentUser.save()
 
-  res.sendResponse({
-    status: STATUS.success.noContent,
-    message: ''
-  })
+  await req.currentUser.save()
+  res.sendResponse(DELETE_RESPONSE)
 })
 
 //              -----   HELPER MIDDLEWARES ----     //
@@ -63,7 +60,7 @@ exports.checkUserOwnsBirthday = catchAsync(async (req, _, next) => {
 })
 
 exports.restrictToUpdate = ({ body }, _, next) => {
-  const allowed = ['name', 'phone']
+  const allowed = ['email', 'phone']
   Object.keys(body).forEach(key => {
     if (!allowed.includes(key)) {
       return next(

@@ -36,3 +36,9 @@ exports.getModifiedByArgs = (doc, ...args) => {
 
   return uniqueArgs(args).reduce(reducer, {})
 }
+
+/**
+ * @param {number} days
+ * @returns
+ */
+exports.daysToMilliseconds = days => days * 86400000
