@@ -1,13 +1,12 @@
 const mongoose = require('mongoose')
-const env = require('./src/settings/env')
+const PORT = require('./src/settings/env').port
 const app = require('./src/app')
 const connectDB = require('./src/lib/db-connect')
 const cronJobScheduler = require('./src/cron/scheduler')
-const firstRequestManager = require('./src/lib/manage-first-request')
-
-const PORT = env.port || 5000
+const firstRequestManager = require('./src/lib/first-request-manager')
 
 cronJobScheduler.start()
+
 const server = app().listen(PORT, () => {
   connectDB()
     .then(res => {
@@ -28,7 +27,7 @@ const shutDownGracefully = (err, reason) => {
 }
 
 process
-  .on('SIGTERM', shutDownGracefully)
-  .on('SIGKILL', shutDownGracefully)
   .on('uncaughtException', shutDownGracefully)
   .on('unhandledRejection', shutDownGracefully)
+// .on('SIGTERM', shutDownGracefully)
+// .on('SIGKILL', shutDownGracefully)

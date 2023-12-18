@@ -1,14 +1,21 @@
-require('dotenv/config')
+const { join } = require('node:path')
 
-const { env } = process
+const { env, cwd } = process
+
+const isProd = env.NODE_ENV !== 'development'
+
+require('dotenv').config({
+  path: join(cwd(), isProd ? 'prod.env' : 'dev.env')
+})
 
 module.exports = {
+  isProduction: isProd,
   // for birthday reminder job
-  page: parseInt(env.page, 10) || 5000,
+  page: Number(env.PAGE) || 5000,
 
   // App server settings
   nodeEnv: env.NODE_ENV,
-  port: env.PORT,
+  port: Number(env.PORT) || 80,
 
   // Database
   db: env.DB,
@@ -45,10 +52,6 @@ module.exports = {
       : `mongodb://localhost:27017/${db}`
   },
 
-  get isProduction() {
-    return this.nodeEnv === 'production'
-  },
-
   get accessTokenExpires() {
     /**
      * PROBLEM:
@@ -64,3 +67,4 @@ module.exports = {
       : Number(env.ACCESS_TOKEN_EXPIRES) * 100
   }
 }
+

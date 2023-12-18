@@ -11,7 +11,7 @@ const apiV1RoutesController = require('./routes/api-v1')
 
 const { CORSOriginSetter } = require('./lib/auth')
 const { isProduction, cookieSecret } = require('./settings/env')
-const firstRequestManager = require('./lib/manage-first-request')
+const FirstRequestManager = require('./lib/first-request-manager')
 
 const app = express()
 
@@ -46,9 +46,7 @@ module.exports = () => {
 
   // Utility endpoint for Debugging
   app.get('/isMobile', appController.showIsMobileReq)
-
-  app.use(firstRequestManager.prepImagesDir.bind(firstRequestManager))
-  app.use(firstRequestManager.setIsFirstRequest.bind(firstRequestManager))
+  app.use(FirstRequestManager.prepImagesDir.bind(FirstRequestManager))
 
   app.use('/api/v1', mongoSanitize(), apiV1RoutesController)
   app.use('*', errorController.wildRoutesHandler)

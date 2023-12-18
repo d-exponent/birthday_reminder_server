@@ -2,7 +2,7 @@ const userAgent = require('express-useragent')
 const morgan = require('morgan')
 const env = require('../settings/env')
 const connect = require('../lib/db-connect')
-const firstRequestManger = require('../lib/manage-first-request')
+const FirstRequestManger = require('../lib/first-request-manager')
 const { signToken } = require('../lib/auth')
 const { STATUS, RESPONSE, TOKENS } = require('../settings/constants')
 
@@ -66,11 +66,10 @@ exports.assignPropsOnResponse = (_, res, next) => {
   next()
 }
 
-const connectLogger = firstRequestManger.logDbConnect.bind(firstRequestManger)
-
 // App wide middlewares
 exports.initDB = (_, __, next) => {
   if (env.isVercel) {
+    const connectLogger = FirstRequestManger.logDbConnect.bind(FirstRequestManger)
     connect().then(connectLogger).catch(connectLogger)
   }
   next()

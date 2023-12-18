@@ -3,6 +3,7 @@
 *.env
 *.pug
 *.pem
+.bashrc
 
 .png
 npm-debug.log*
