@@ -1,6 +1,5 @@
-const crypto = require('crypto')
 const fs = require('fs')
-const path = require('path')
+const crypto = require('crypto')
 const multer = require('multer')
 const sharp = require('sharp')
 
@@ -8,35 +7,94 @@ const BirthDay = require('../models/birthday')
 const AppError = require('../lib/app-error')
 const catchAsync = require('../lib/catch-async')
 const BuildMongooseQuery = require('../lib/query-builder')
+
+const factory = require('./factory')
+const { getImageFilePath } = require('../lib/utils')
+const { STATUS, DELETE_RESPONSE } = require('../settings/constants')
 const { generateAccessCode: randomDigits } = require('../lib/auth')
 
-const {
-  RESPONSE: { error: re },
-  STATUS: { error: se, success: ss },
-  DELETE_RESPONSE,
-  FIND_UPDATE_OPTIONS,
-  BIRTHDAYS_IMAGES_DIR
-} = require('../settings/constants')
+exports.getImage = factory.handleGetImage('birthdays')
+exports.getBirthday = factory.getDoc(BirthDay, 'birthday')
+exports.updateBirthday = factory.updateDoc(BirthDay, 'birthday')
+exports.deleteBirthday = factory.deleteDoc(BirthDay)
 
-const birthdayImageFile = imageName => path.join(BIRTHDAYS_IMAGES_DIR, imageName)
+exports.addBirthday = catchAsync(async ({ params: { ownerId }, body, domain }, res) => {
+  const newBirthday = await BirthDay.create({ ...body, owner: ownerId })
+  newBirthday.prependURLEndpointToImageCover(domain)
 
-const fileFilter = (_, file, cb) => {
-  // Allow only image file. Detect by Mimetype.
-  if (file.mimetype.startsWith('image')) return cb(null, true)
-  return cb(
-    new AppError(
-      `${file.mimetype} is an unsupported format. Please upload only images`,
-      se.badRequest
-    ),
-    false
-  )
-}
+  res.sendResponse({
+    status: STATUS.success.created,
+    data: newBirthday
+  })
+})
+
+exports.getBirthdays = catchAsync(async ({ body, query: reqQuery }, res, next) => {
+  let mongooseQuery = BirthDay.find(body)
+  let errorMessage = 'There are no birthdays at this time'
+
+  if (body.owner) {
+    mongooseQuery = mongooseQuery.select('-owner')
+    errorMessage = 'You have no saved birthdays'
+  } else {
+    mongooseQuery = mongooseQuery.populate({
+      path: 'owner',
+      select: 'name email'
+    })
+  }
+
+  const query = new BuildMongooseQuery(mongooseQuery, reqQuery)
+    .filter()
+    .fields()
+    .page()
+    .sort()
+
+  const birthdays = await query.mongooseQuery
+
+  if (!birthdays.length) {
+    return next(new AppError(errorMessage, STATUS.error.notFound))
+  }
+
+  res.sendResponse({
+    results: birthdays.length,
+    data: birthdays
+  })
+})
+
+exports.deleteImage = catchAsync(
+  async ({ birthday, params: { imageName } }, res, next) => {
+    birthday.imageCover = undefined
+
+    const [birthdaySettled] = await Promise.allSettled([
+      birthday.save(),
+      fs.promises.unlink(getImageFilePath(imageName))
+    ])
+
+    if (birthdaySettled.status === 'rejected') {
+      return next(
+        new AppError(
+          'Something went wrong deleting the image. Please try again',
+          STATUS.error.serverError
+        )
+      )
+    }
+    res.sendResponse(DELETE_RESPONSE)
+  }
+)
 
 // FILES CONTROLLERS AND MIDDLEWARES
-exports.upload = multer({ storage: multer.memoryStorage(), fileFilter })
+exports.upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (_, file, cb) => {
+    if (file.mimetype.startsWith('image')) return cb(null, true)
+
+    const message = `${file.mimetype} is an unsupported format. Please upload only images`
+    return cb(new AppError(message, STATUS.error.badRequest), false)
+  }
+})
 
 exports.processImageUpload = catchAsync(
   async ({ currentUser: { name: names }, file, birthday, body, method }, _, next) => {
+    //
     if (file) {
       const imageName =
         method === 'PATCH' && birthday.imageCover
@@ -45,50 +103,11 @@ exports.processImageUpload = catchAsync(
               .randomBytes(5)
               .toString('hex')}-${randomDigits(5)}.png`
 
-      await sharp(file.buffer).resize(800).png().toFile(birthdayImageFile(imageName))
+      await sharp(file.buffer).resize(800).png().toFile(getImageFilePath(imageName))
       body.imageCover = imageName
     }
+
     next()
-  }
-)
-
-exports.getImage = ({ params: { imageName } }, res) => {
-  const imageFile = birthdayImageFile(imageName)
-
-  fs.stat(imageFile, e => {
-    // Send the file if it exists
-    if (e === null) return res.sendFile(imageFile)
-
-    // handle response if the file does not exist
-    if (e.code === 'ENOENT')
-      return res.sendResponse(
-        { message: 'The image does not exist in our records', status: se.notFound },
-        re
-      )
-
-    // Must be the client .. No? You don't agree? HMM 🤔🤔
-    res.sendResponse({ message: 'Bad Request', status: se.badRequest }, re)
-  })
-}
-
-exports.deleteImage = catchAsync(
-  async ({ birthday, params: { imageName } }, res, next) => {
-    birthday.imageCover = undefined
-
-    const [birthdaySettled] = await Promise.allSettled([
-      birthday.save(),
-      fs.promises.unlink(birthdayImageFile(imageName))
-    ])
-
-    if (birthdaySettled.status === 'rejected') {
-      return next(
-        new AppError(
-          'Something went wrong deleting the image. Please try again',
-          se.serverError
-        )
-      )
-    }
-    res.sendResponse(DELETE_RESPONSE)
   }
 )
 
@@ -102,7 +121,10 @@ exports.checkUserOwnsImage = catchAsync(
 
     if (birthdays.length === 0)
       return next(
-        new AppError(`Couldn't find ${imageName} for ${currentUser.name}`, se.notFound)
+        new AppError(
+          `Couldn't find ${imageName} for ${currentUser.name}`,
+          STATUS.error.notFound
+        )
       )
 
     const [birthday] = birthdays
@@ -110,83 +132,3 @@ exports.checkUserOwnsImage = catchAsync(
     next()
   }
 )
-
-// ***** FILE CONTROLLERS AND MIDDLEWARES END *****
-
-exports.addBirthday = catchAsync(async ({ params: { ownerId }, body, domain }, res) => {
-  const newBirthday = await BirthDay.create({ ...body, owner: ownerId })
-
-  newBirthday.prependURLEndpointToImageCover(domain)
-
-  res.sendResponse({
-    status: ss.created,
-    data: newBirthday
-  })
-})
-
-exports.getBirthdays = catchAsync(
-  async ({ body, query: reqQuery, domain }, res, next) => {
-    let mongooseQuery = BirthDay.find(body)
-
-    let errorMessage = 'There are no birthdays at this time'
-
-    if (body.owner) {
-      mongooseQuery = mongooseQuery.select('-owner')
-      errorMessage = 'You have no saved birthdays'
-    } else {
-      mongooseQuery = mongooseQuery.populate({
-        path: 'owner',
-        select: 'name email'
-      })
-    }
-
-    const query = new BuildMongooseQuery(mongooseQuery, reqQuery)
-      .filter()
-      .fields()
-      .page()
-      .sort()
-
-    const birthdays = await query.mongooseQuery
-
-    if (!birthdays.length) {
-      return next(new AppError(errorMessage, se.notFound))
-    }
-
-    birthdays.forEach(birthday => birthday.prependURLEndpointToImageCover(domain))
-
-    res.sendResponse({
-      results: birthdays.length,
-      data: birthdays
-    })
-  }
-)
-
-exports.getBirthday = catchAsync(
-  async ({ params: { id }, currentUser, domain }, res, next) => {
-    const birthday = await BirthDay.findById(id).populate(
-      currentUser && currentUser.role === 'admin' ? 'owner' : ''
-    )
-
-    if (!birthday) return next(new AppError("The birthday doesn't exist", se.notFound))
-
-    birthday.prependURLEndpointToImageCover(domain)
-    res.sendResponse({ data: birthday })
-  }
-)
-
-exports.updateBirthday = catchAsync(async ({ body, params: { id }, domain }, res) => {
-  // Prepend http(S) path to image file name
-
-  const updatedBirthday = await BirthDay.findByIdAndUpdate(id, body, FIND_UPDATE_OPTIONS)
-
-  updatedBirthday.prependURLEndpointToImageCover(domain)
-
-  res.sendResponse({
-    data: updatedBirthday
-  })
-})
-
-exports.deleteBirthday = catchAsync(async ({ params: { id } }, res) => {
-  await BirthDay.findByIdAndDelete(id)
-  res.sendResponse(DELETE_RESPONSE)
-})

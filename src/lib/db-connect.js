@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+
 const enviroment = require('../settings/env')
 const { MONGO_DB_CONNECTION } = require('../settings/constants')
 

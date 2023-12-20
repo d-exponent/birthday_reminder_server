@@ -1,4 +1,4 @@
-const { join } = require('node:path')
+const { join } = require('path')
 
 const { env, cwd } = process
 
@@ -67,4 +67,3 @@ module.exports = {
       : Number(env.ACCESS_TOKEN_EXPIRES) * 100
   }
 }
-

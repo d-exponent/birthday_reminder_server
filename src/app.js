@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser')
 const rateLimit = require('express-rate-limit')
 const mongoSanitize = require('express-mongo-sanitize')
 
-const appController = require('./controllers/app')
+const appController = require('./controllers/global')
 const errorController = require('./controllers/errors')
 const apiV1RoutesController = require('./routes/api-v1')
 
@@ -29,24 +29,21 @@ const corsConfig = {
 }
 
 module.exports = () => {
-  app.use(FRM.prepImagesDir.bind(FRM))
-  app.get('/test', appController.showAppIsRunning)
-
   app.options('*', cors(corsConfig))
 
+  app.get('/test', appController.showAppIsRunning)
+  
   app.use(cors(corsConfig))
   app.use(rateLimit(rateLimitConfig))
   app.use(cookieParser(cookieSecret))
   app.use(compression())
   app.use(express.json())
-
+  
   app.use(appController.initDB)
+  app.use(FRM.prepImagesDir.bind(FRM))
   app.use(appController.assignPropsOnRequest)
   app.use(appController.assignPropsOnResponse)
   app.use(appController.useMorganOnDev())
-
-  // Utility endpoint for Debugging
-  app.get('/isMobile', appController.showIsMobileReq)
 
   app.use('/api/v1', mongoSanitize(), apiV1RoutesController)
   app.use('*', errorController.wildRoutesHandler)

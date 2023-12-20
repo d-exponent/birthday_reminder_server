@@ -1,6 +1,6 @@
 const router = require('express').Router()
+
 const authController = require('../controllers/auth')
-const userController = require('../controllers/users')
 
 router.get('/refresh', authController.getAccessToken)
 
@@ -11,15 +11,10 @@ router.get(
   authController.logout
 )
 
-router.get(
-  '/:user_email_phone_id',
-  userController.setCustomQueryFromParams,
-  authController.requestAccessCode
-)
+router.get('/:email', authController.requestAccessCode)
 
 router.get(
-  '/login/:user_email_phone_id/:accessCode',
-  userController.setCustomQueryFromParams,
+  '/login/:email/:accessCode',
   authController.testAccessCodeAnatomy,
   authController.submitAccessCode
 )

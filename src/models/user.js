@@ -1,7 +1,8 @@
 const mongoose = require('mongoose')
-const { SCHEMA_OPTIONS, VALID_USER_ROLES, REGEX } = require('../settings/constants')
-const { titleCaseNames } = require('./common')
+
 const Birthday = require('./birthday')
+const { titleCaseNames } = require('./common')
+const { SCHEMA_OPTIONS, VALID_USER_ROLES, REGEX } = require('../settings/constants')
 
 const userSchema = new mongoose.Schema(
   {

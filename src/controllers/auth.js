@@ -1,5 +1,6 @@
 const { promisify } = require('util')
 const jwt = require('jsonwebtoken')
+
 const env = require('../settings/env')
 const User = require('../models/user')
 const Email = require('../features/email')
@@ -22,26 +23,24 @@ const INVALID_TOKEN_ERROR = new AppError(
   STATUS.error.unauthorized
 )
 
-const logErrorToDatabase = message => {
-  commitError(new EmailError(message)).catch(e => {
-    // eslint-disable-next-line no-console
-    console.error(e.message)
-  })
+const saveEmailErrorToDB = message => {
+  commitError(new EmailError(message)).catch(e => console.error(e.message))
 }
 
 exports.requestAccessCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.customQuery).select(defaultSelectsAnd('isActive'))
+  const user = await User.findOne({ email: req.params.email }).select(
+    defaultSelectsAnd('isActive')
+  )
 
   if (!user || !user.isActive)
     return next(new AppError('The user does not exist', STATUS.error.notFound))
 
-  const accessCode = generateAccessCode()
-  user.accessCode = accessCode
+  user.accessCode = generateAccessCode()
   user.accessCodeExpires = timeInMinutes(10)
 
   const results = await Promise.allSettled([
     user.save(),
-    new Email(user.name, user.email).sendAccessCode(accessCode)
+    new Email(user.name, user.email).sendAccessCode(user.accessCode)
   ])
 
   if (results.every(result => result.status === 'fulfilled')) {
@@ -58,7 +57,7 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
       { message: `Error sending ${user.email} the access code` },
       errorResponseType
     )
-    logErrorToDatabase(sentEmail.reason)
+    saveEmailErrorToDB(sentEmail.reason)
   } else {
     res.sendResponse(
       { message: 'There was an error processing your request. Please try again!' },
@@ -68,9 +67,10 @@ exports.requestAccessCode = catchAsync(async (req, res, next) => {
 })
 
 exports.submitAccessCode = catchAsync(async (req, res, next) => {
-  const user = await User.findOne(req.customQuery).select(
-    defaultSelectsAnd('accessCodeExpires', 'role', 'isVerified')
-  )
+  const user = await User.findOne({
+    email: req.params.email,
+    accessCode: req.params.accessCode
+  }).select(defaultSelectsAnd('accessCodeExpires', 'role', 'isVerified'))
 
   if (!user || Date.now() > user.accessCodeExpires.getTime())
     return next(new AppError('Invalid access code', STATUS.error.unauthorized))
@@ -94,14 +94,9 @@ exports.submitAccessCode = catchAsync(async (req, res, next) => {
     try {
       await new Email(user.name, user.email).sendWelcome()
     } catch (e) {
-      logErrorToDatabase(e.message ?? 'Unkown Error')
+      saveEmailErrorToDB(e.message ?? 'Unkown Error')
     }
   }
-})
-
-exports.logout = catchAsync(async ({ currentUser }, res) => {
-  await currentUser.save()
-  res.sendResponse(DELETE_RESPONSE)
 })
 
 exports.getAccessToken = catchAsync(async (req, res, next) => {
@@ -166,8 +161,12 @@ exports.setUserForlogout = async (req, _, next) => {
   next()
 }
 
+exports.logout = catchAsync(async ({ currentUser }, res) => {
+  await currentUser.save()
+  res.sendResponse(DELETE_RESPONSE)
+})
+
 exports.permit = (...roles) => {
-  // Ensure at least one role is passed
   if (!roles.length) throw new Error('restrictTo requires at least one valid role')
 
   // Ensure only valid roles are passed
@@ -191,9 +190,8 @@ exports.permit = (...roles) => {
 }
 
 // -------------  HELPER MIDDLEWARE
-exports.testAccessCodeAnatomy = (req, _, next) => {
-  const { customQuery, params, originalUrl } = req
-
+exports.testAccessCodeAnatomy = ({ params, originalUrl }, _, next) => {
+  // To prevent querying DB unneccesarilly
   if (!REGEX.accessCode.test(params.accessCode)) {
     return next(
       new AppError(
@@ -202,7 +200,5 @@ exports.testAccessCodeAnatomy = (req, _, next) => {
       )
     )
   }
-
-  customQuery.accessCode = params.accessCode
   next()
 }

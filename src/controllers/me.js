@@ -6,14 +6,19 @@ const { STATUS, DELETE_RESPONSE } = require('../settings/constants')
 exports.deleteMe = catchAsync(async (req, res) => {
   req.currentUser.isActive = false
   req.currentUser.isVerified = false
-
   await req.currentUser.save()
   res.sendResponse(DELETE_RESPONSE)
 })
 
+exports.getBirthday = ({ birthday, domain }, res) => {
+  birthday.prependURLEndpointToImageCover(domain)
+  birthday.owner = undefined
+  res.sendResponse({ data: birthday })
+}
+
 //              -----   HELPER MIDDLEWARES ----     //
 exports.setMyIdOnParams = ({ params, currentUser }, _, next) => {
-  params['user_email_phone_id'] = currentUser['_id']
+  params.id = currentUser['_id']
   params.ownerId = currentUser['_id']
   next()
 }
@@ -60,9 +65,9 @@ exports.checkUserOwnsBirthday = catchAsync(async (req, _, next) => {
 })
 
 exports.restrictToUpdate = ({ body }, _, next) => {
-  const allowed = ['email', 'phone']
+  const restricted = ['email', 'phone', 'role']
   Object.keys(body).forEach(key => {
-    if (!allowed.includes(key)) {
+    if (restricted.includes(key)) {
       return next(
         new AppError(
           `You are not allowed to update the /${key}/ on this route`,
@@ -71,6 +76,5 @@ exports.restrictToUpdate = ({ body }, _, next) => {
       )
     }
   })
-
   next()
 }

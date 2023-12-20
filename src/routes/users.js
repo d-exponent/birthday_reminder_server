@@ -9,12 +9,12 @@ router.use(authController.protect, authController.permit('admin'))
 router
   .route('/')
   .get(userController.getUsers)
-  .post(userController.setRequestBody, userController.createUser)
+  .post(userController.setDocumentBody, userController.createUser)
 
 router
-  .route('/:user_email_phone_id')
-  .get(userController.setCustomQueryFromParams, userController.getUser)
-  .patch(userController.setCustomQueryFromParams, userController.updateUser)
-  .delete(userController.setCustomQueryFromParams, userController.deleteUser)
+  .route('/:id')
+  .get(userController.getUser)
+  .patch(userController.updateUser)
+  .delete(userController.deleteUser)
 
 module.exports = router

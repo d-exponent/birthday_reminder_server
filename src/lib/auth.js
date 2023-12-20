@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken')
+
 const env = require('../settings/env')
 const AppError = require('./app-error')
 const { TOKENS, STATUS, CORS_ORIGIN_ERROR } = require('../settings/constants')

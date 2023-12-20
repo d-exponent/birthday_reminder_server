@@ -1,15 +1,15 @@
-/* eslint-disable lines-between-class-members */
-/* eslint-disable no-console */
 const fs = require('fs')
-const AppError = require('./app-error')
+
 const {
   STATUS,
   BIRTHDAYS_IMAGES_DIR,
   USERS_IMAGES_DIR
 } = require('../settings/constants')
+const AppError = require('./app-error')
 
 module.exports = class FirstRequestManager {
   static hasLoggedDbConnect = false
+
   static hasCreatedImagesDir = false
 
   static logDbConnect(msg) {

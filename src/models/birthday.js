@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+
 const { titleCaseNames } = require('./common')
 
 const birthdaySchema = new mongoose.Schema({
@@ -43,7 +44,7 @@ const birthdaySchema = new mongoose.Schema({
 birthdaySchema.methods.prependURLEndpointToImageCover =
   function prependURLEndpointToImageCover(domain) {
     if (this.imageCover) {
-      this.imageCover = `${domain}/api/v1/users/me/birthdays/images/${this.imageCover}`
+      this.imageCover = `${domain}/api/v1/assets/images/birthdays/${this.imageCover}`
     }
   }
 

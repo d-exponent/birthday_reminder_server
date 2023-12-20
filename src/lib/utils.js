@@ -1,3 +1,7 @@
+const { join } = require('path')
+
+const { BIRTHDAYS_IMAGES_DIR, USERS_IMAGES_DIR } = require('../settings/constants')
+
 const uniqueArgs = args => [...new Set(args)]
 
 exports.DEFAULT_SELECTS = 'name phone email id role'
@@ -42,3 +46,14 @@ exports.getModifiedByArgs = (doc, ...args) => {
  * @returns
  */
 exports.daysToMilliseconds = days => days * 86400000
+
+/**
+ * Joins the image to the absolute path of users or birthdays dir in assets dir
+ * @param {string} image - image file name
+ * @param {'birthdays' | undefined } path defaults to birthdays
+ * @returns  The absolute path of the image in the assets directory,
+ *
+ * If path is undefined, the image will be joined to the absolute path of the assets/users directory
+ */
+exports.getImageFilePath = (image, path = 'birthdays') =>
+  join(path === 'birthdays' ? BIRTHDAYS_IMAGES_DIR : USERS_IMAGES_DIR, image)

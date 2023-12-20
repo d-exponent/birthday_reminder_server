@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 module.exports = class AppError extends Error {
   constructor(message, status) {
     super(message)

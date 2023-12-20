@@ -31,11 +31,6 @@ exports.RESPONSE = {
   error: 'error'
 }
 
-exports.FIND_UPDATE_OPTIONS = {
-  new: true,
-  runValidators: true
-}
-
 exports.TOKENS = {
   refresh: 'refresh',
   access: 'access'

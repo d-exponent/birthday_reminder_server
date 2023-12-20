@@ -1,5 +1,6 @@
-const userAgent = require('express-useragent')
 const morgan = require('morgan')
+const userAgent = require('express-useragent')
+
 const env = require('../settings/env')
 const connect = require('../lib/db-connect')
 const FirstRequestManger = require('../lib/first-request-manager')
@@ -81,8 +82,4 @@ exports.useMorganOnDev = () =>
 //* These methods serve to allow some live enviroment debugging. They <may> be removed later
 exports.showAppIsRunning = (_, res) => res.status(200).send('App is running')
 
-exports.showIsMobileReq = (req, res) =>
-  res.status(200).json({
-    isMobile: req.isMobile,
-    ...req.headers
-  })
+
