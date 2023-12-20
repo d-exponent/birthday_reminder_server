@@ -1,44 +1,37 @@
 /* eslint-disable lines-between-class-members */
 /* eslint-disable no-console */
 const fs = require('fs')
-const path = require('path')
 const AppError = require('./app-error')
-const { STATUS, BIRTHDAYS_IMAGES_DIR_UNRESOLVED } = require('../settings/constants')
-
-const BIRTHDAYS_IMAGES_DIR = path.join('src', 'assets', 'images', 'birthdays')
+const {
+  STATUS,
+  BIRTHDAYS_IMAGES_DIR,
+  USERS_IMAGES_DIR
+} = require('../settings/constants')
 
 module.exports = class FirstRequestManager {
-  static isFirstRequest = true
   static hasLoggedDbConnect = false
   static hasCreatedImagesDir = false
 
   static logDbConnect(msg) {
-    if (!this.isFirstRequest) return
+    if (this.hasLoggedDbConnect) return
 
     console.log(msg)
     this.hasLoggedDbConnect = true
-    this.setFirstRequest()
   }
 
   static async prepImagesDir(_, __, next) {
-    if (!this.isFirstRequest) return next()
+    if (this.hasCreatedImagesDir) return next()
 
-    if (!fs.existsSync(BIRTHDAYS_IMAGES_DIR_UNRESOLVED)) {
-      try {
-        await fs.promises.mkdir(BIRTHDAYS_IMAGES_DIR_UNRESOLVED, { recursive: true })
-      } catch (e) {
-        return next(new AppError(e.message, STATUS.error.serverError))
-      }
+    try {
+      const result = await Promise.allSettled([
+        fs.promises.mkdir(BIRTHDAYS_IMAGES_DIR, { recursive: true }),
+        fs.promises.mkdir(USERS_IMAGES_DIR, { recursive: true })
+      ])
+      this.hasCreatedImagesDir = result.every(r => r.status === 'fulfilled')
+    } catch (e) {
+      return next(new AppError(e.message, STATUS.error.serverError))
     }
-
-    this.hasCreatedImagesDir = true
-    this.setFirstRequest()
     return next()
-  }
-
-  static setFirstRequest() {
-    if (this.isFirstRequest)
-      this.isFirstRequest = !(this.hasCreatedImagesDir && this.hasLoggedDbConnect)
   }
 }
 
