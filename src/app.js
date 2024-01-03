@@ -16,7 +16,7 @@ const FRM = require('./lib/first-request-manager')
 
 const rateLimitConfig = {
   windowMs: 900000, // 15 minutes
-  max: isProduction ? 500 : 1000,
+  max: isProduction ? 1000 : 4000,
   standardHeaders: true,
   legacyHeaders: false
 }
@@ -35,7 +35,7 @@ module.exports = () => {
   app.options('*', cors(corsConfig))
 
   app.use(cors(corsConfig))
-  // app.use(rateLimit(rateLimitConfig))
+  app.use(rateLimit(rateLimitConfig))
   app.use(cookieParser(cookieSecret))
   app.use(compression())
   app.use(express.json())
