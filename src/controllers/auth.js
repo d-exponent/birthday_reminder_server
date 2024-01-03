@@ -154,10 +154,18 @@ exports.protect = catchAsync(async (req, _, next) => {
   next()
 })
 
-exports.setUserForlogout = async (req, _, next) => {
+exports.setUserForlogout = async (req, res, next) => {
   req.currentUser.refreshToken = undefined
   req.currentUser.accessCode = undefined
   req.currentUser.accessCodeExpires = undefined
+
+  res.cookie(env.cookieName, 'foo-bar', {
+    httpOnly: true,
+    secure: false,
+    signed: false,
+    maxAge: 1000
+  })
+
   next()
 }
 

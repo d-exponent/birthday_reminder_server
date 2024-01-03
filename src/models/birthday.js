@@ -43,9 +43,8 @@ const birthdaySchema = new mongoose.Schema({
 
 birthdaySchema.methods.prependURLEndpointToImageCover =
   function prependURLEndpointToImageCover(domain) {
-    if (this.imageCover) {
+    if (this.imageCover)
       this.imageCover = `${domain}/api/v1/assets/images/birthdays/${this.imageCover}`
-    }
   }
 
 birthdaySchema.pre('save', function titleNames(next) {

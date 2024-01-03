@@ -16,18 +16,17 @@ const defineGetter = (obj, name, getter) => {
 }
 
 exports.assignPropsOnRequest = (req, res, next) => {
-  defineGetter(req, 'isSecure', () =>
-    env.isVercel && env.isProduction ? true : req.secure
-  )
+  defineGetter(req, 'isSecure', () => (env.isVercel && env.isProduction) || req.secure)
 
   defineGetter(req, 'domain', function domain() {
     return `${this.isSecure ? 'https' : 'http'}://${this.get('host')}`
   })
 
   defineGetter(req, 'isMobile', function isMobile() {
-    return this.headers.platform === 'mobile'
-      ? true
-      : userAgent.parse(this.headers['user-agent']).isMobile
+    return (
+      this.headers.platform === 'mobile' ||
+      userAgent.parse(this.headers['user-agent']).isMobile
+    )
   })
 
   req.refreshTokenManager = function refreshTokenManager(email) {
@@ -36,6 +35,7 @@ exports.assignPropsOnRequest = (req, res, next) => {
     // Set cookie header when the request is from a browser
     if (!this.isMobile) {
       const { isSecure } = this
+
       res.cookie(env.cookieName, refreshToken, {
         httpOnly: isSecure,
         secure: isSecure,
@@ -80,6 +80,12 @@ exports.useMorganOnDev = () =>
   env.isProduction ? (_, __, next) => next() : morgan('dev')
 
 //* These methods serve to allow some live enviroment debugging. They <may> be removed later
-exports.showAppIsRunning = (_, res) => res.status(200).send('App is running')
-
-
+exports.seeRequest = (req, res) =>
+  res
+    .status(200)
+    .json({
+      protocol: req.protocol,
+      domain: req.domain,
+      mobile: req.isMobile,
+      headers: req.headers,
+    })

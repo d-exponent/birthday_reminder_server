@@ -1,6 +1,6 @@
 const connectDatabase = require('../lib/db-connect')
 const Birthday = require('../models/birthday')
-const PAGE = require('../settings/env').page
+const { page: PAGE } = require('../settings/env')
 
 module.exports = async function* birthdaysGenerator(day, month) {
   try {
@@ -17,11 +17,12 @@ module.exports = async function* birthdaysGenerator(day, month) {
         })
 
       if (birthdays.length === 0) break
+
       yield birthdays
       skip += PAGE
     }
   } catch (e) {
-    const title = (e.name === 'MongooseError' ? 'MongooseError' : 'Unkown').toUpperCase()
+    const title = e.name === 'MongooseError' ? 'MongooseError' : 'Unkown'
     console.error(title, '\n', `🛑REASON: ${e.message}`)
   }
 }

@@ -6,24 +6,32 @@ const { BirthdayReminderJobError, EmailError } = require('../lib/custom-errors')
 
 const birthdaysGenerator = require('./generator')
 
+const commit = (ErrorClass, message) =>
+  commitError(new ErrorClass(message)).catch(e => console.error(e.message))
+
 /**
  * @param { 1 | 7 } day defaults to zero (0)
  */
-module.exports = async (day = 0) => {
-  const date = new Date(Date.now() + daysToMilliseconds(day))
+module.exports = async (days = 0) => {
+  const date = new Date(Date.now() + daysToMilliseconds(days))
   const generatorObject = birthdaysGenerator(date.getDate(), date.getMonth() + 1)
 
   for await (const birthdays of generatorObject) {
-    birthdays.forEach(({ owner, name, phone, email, _id }) => {
+    birthdays.forEach(async ({ owner, name, phone, email, _id }) => {
+      // user deleted their profile or hasn't logged in at least once
       if (!(owner.isActive && owner.isVerified)) return
 
-      new Email(owner.name, owner.email)
-        .sendBirthdayReminder({ name, phone, email, daysDue: day })
-        .catch(e => {
-          const message = `Owner id: ${owner['_id']} Birthday id: ${_id}`
-          commitError(new BirthdayReminderJobError(message)).catch(console.error)
-          if (isProduction) commitError(new EmailError(e.message)).catch(console.error)
+      try {
+        await new Email(owner.name, owner.email).sendBirthdayReminder({
+          name,
+          phone,
+          email,
+          daysDue: days
         })
+      } catch (e) {
+        if (isProduction) commit(EmailError, e.message)
+        commit(BirthdayReminderJobError, `Owner id: ${owner['_id']} Birthday id: ${_id}`)
+      }
 
       // TODO: Execute whatsApp and Text Message Reminders depending on user subscription plan (NOT IMPLEMENTED YET)
     })
