@@ -81,11 +81,9 @@ exports.useMorganOnDev = () =>
 
 //* These methods serve to allow some live enviroment debugging. They <may> be removed later
 exports.seeRequest = (req, res) =>
-  res
-    .status(200)
-    .json({
-      protocol: req.protocol,
-      domain: req.domain,
-      mobile: req.isMobile,
-      headers: req.headers,
-    })
+  res.status(200).json({
+    protocol: req.protocol,
+    domain: req.domain,
+    mobile: req.isMobile,
+    headers: req.headers
+  })

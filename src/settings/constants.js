@@ -63,4 +63,3 @@ exports.MONGO_DB_CONNECTION = {
 
 exports.CORS_ORIGIN_ERROR =
   'The CORS policy for this site does not allow access from the specified Origin.'
-
